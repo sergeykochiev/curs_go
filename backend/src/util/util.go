@@ -2,6 +2,7 @@ package util
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -19,12 +20,11 @@ func GetCurrentTime() string {
 	return time.Now().Format(time.DateTime)
 }
 
-func GetRows[T ActiveRecorder](db *sql.DB, ent T, where string) ([]T, error) {
+func GetRows[T ActiveRecorder](db QueryExecutor, ent T, where string) ([]T, error) {
 	var rows *sql.Rows
 	var err error
 	rows, err = db.Query(ent.GetSelectWhereQuery(where))
 	if err != nil {
-		println("Failed to query rows", err.Error())
 		return nil, err
 	}
 	var arr []T
@@ -40,14 +40,18 @@ func GetRows[T ActiveRecorder](db *sql.DB, ent T, where string) ([]T, error) {
 func GetSingleRow[T interface {
 	ActiveRecorder
 	Identifier
-}, D QueryExecutor](db D, ent T, id string) error {
-	rows, err := db.Query(fmt.Sprintf(ent.GetSelectWhereQuery("where public.%s.id = $1"), ent.GetName()), id)
+}](db QueryExecutor, ent T, id int) error {
+	println(ent.GetSelectWhereQuery(fmt.Sprintf("where \"%s\".id = $1", ent.GetName())))
+	rows, err := db.Query(ent.GetSelectWhereQuery(fmt.Sprintf("where \"%s\".id = $1", ent.GetName())), id)
 	if err != nil {
-		println("Failed to query rows")
 		return err
 	}
 	if !rows.Next() {
 		return sql.ErrNoRows
 	}
 	return ent.ScanRow(rows)
+}
+
+func PreappendError(prefix string, err error) error {
+	return errors.New(fmt.Sprintf("%s: %s", prefix, err.Error()))
 }

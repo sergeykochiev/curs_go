@@ -4,6 +4,9 @@ import (
 	"database/sql"
 
 	. "github.com/sergeykochiev/curs/backend/types"
+	. "github.com/sergeykochiev/curs/backend/gui"
+	. "maragu.dev/gomponents"
+	_ "maragu.dev/gomponents/components"
 )
 
 type UserEntity struct {
@@ -18,7 +21,7 @@ func (e *UserEntity) ScanRow(r Scanner) error {
 }
 
 func (e *UserEntity) InsertRow(db *sql.DB) (sql.Result, error) {
-	return db.Exec("insert into public.user (name, password, is_admin) values ($1, $2, $3)", e.Name, e.Password, e.Is_admin)
+	return db.Exec("insert into user (name, password, is_admin) values ($1, $2, $3)", e.Name, e.Password, e.Is_admin)
 }
 
 // func (e *UserEntity) getHtmlCreateForm() Group {
@@ -38,6 +41,12 @@ func (e *UserEntity) InsertRow(db *sql.DB) (sql.Result, error) {
 // 		Div(Class("w-full grid place-items-center"), Text(html.EscapeString(fmt.Sprintf("%d", e.Creator_id)))),
 // 	}
 // }
+
+func (e *UserEntity) GetEntityPage(recursive bool) Group {
+	return Group{
+		LabeledField("Имя", e.Name),
+	}
+}
 
 func (e *UserEntity) Validate() bool {
 	return len(e.Password) >= 8

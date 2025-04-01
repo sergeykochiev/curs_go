@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html"
 
+	. "github.com/sergeykochiev/curs/backend/gui"
 	. "github.com/sergeykochiev/curs/backend/types"
 	. "maragu.dev/gomponents"
 	_ "maragu.dev/gomponents/components"
@@ -24,18 +25,11 @@ func (e *ResourceResupplyEntity) ScanRow(r Scanner) error {
 }
 
 func (e *ResourceResupplyEntity) GetSelectWhereQuery(where string) string {
-	return "select * from public.resource_resupply  left join public.resource on public.resource_resupply.resource_id = public.resource.id" + where
+	return "select * from resource_resupply left join resource on resource_resupply.resource_id = resource.id " + where
 }
 
 func (e *ResourceResupplyEntity) Insert(db QueryExecutor) (sql.Result, error) {
-	if err := e._Resource.ScanRow(db.QueryRow(e._Resource.GetSelectWhereQuery("where public.resource.id = $1"), e._Resource.Id)); err != nil {
-		return nil, err
-	}
-	e._Resource.Quantity += e.Quantity_added
-	if _, err := e._Resource.Update(db); err != nil {
-		return nil, err
-	}
-	return db.Exec("insert into public.resource_resupply (resource_id, quantity_added, date) values ($1, $2, $3)", e.Resource_id, e.Quantity_added, e.Date)
+	return db.Exec("insert into resource_resupply (resource_id, quantity_added, date) values ($1, $2, $3)", e.Resource_id, e.Quantity_added, e.Date)
 }
 
 // TODO implement me
@@ -43,21 +37,41 @@ func (e *ResourceResupplyEntity) Update(db QueryExecutor) (sql.Result, error) {
 	return db.Exec("")
 }
 
-func (e *ResourceResupplyEntity) ToHtmlDataRow() Group {
+func (e *ResourceResupplyEntity) GetDataRow() Group {
 	return Group{
-		Div(Class("w-full grid place-items-center"), Text(html.EscapeString(e._Resource.Name))),
-		Div(Class("w-full grid place-items-center"), Text(html.EscapeString(fmt.Sprintf("%d", e.Quantity_added)))),
-		Div(Class("w-full grid place-items-center"), Text(html.EscapeString(e.Date))),
-		Div(Class("w-full grid place-items-center"), Text(html.EscapeString(fmt.Sprintf("%f", e._Resource.Cost_by_one)))),
+		Div(Class("px-[2px] grid place-items-center"), Text(html.EscapeString(fmt.Sprintf("%d", e.Id)))),
+		TableCell(e._Resource.Name),
+		TableCell(fmt.Sprintf("%d", e.Quantity_added)),
+		TableCell(e.Date),
+		TableCell(fmt.Sprintf("%f", e._Resource.Cost_by_one)),
 	}
 }
 
 func (e *ResourceResupplyEntity) GetTableHeader() Group {
 	return Group{
-		Div(Class("w-full grid place-items-center"), Text("Ресурс")),
-		Div(Class("w-full grid place-items-center"), Text("Количество добавлено (единиц)")),
-		Div(Class("w-full grid place-items-center"), Text("Дата поставки")),
-		Div(Class("w-full grid place-items-center"), Text("Цена за один")),
+		Div(Class("px-[2px] grid place-items-center"), Text("ID")),
+		TableCell("Ресурс"),
+		TableCell("Количество добавлено (единиц)"),
+		TableCell("Дата поставки"),
+		TableCell("Цена за один"),
+	}
+}
+
+func (e ResourceResupplyEntity) GetEntityPage(recursive bool) Group {
+	return Group{
+		LabeledField("Количество добавлено (единиц)", fmt.Sprintf("%d", e.Quantity_added)),
+		LabeledField("Дата поставки", e.Date),
+		If(recursive, Group{
+			RelationCard(fmt.Sprintf("Потрачен ресурс #%d", e.Resource_id), &e._Resource),
+		}),
+	}
+}
+
+func (e ResourceResupplyEntity) GetCreateForm(res []*ResourceEntity) Group {
+	return Group{
+		SelectComponent(res, "", func(r *ResourceEntity) string { return r.Name }, "Выберите ресурс", "resource_id", true, -1),
+		InputComponent("number", "", "quantity_added", "Кол-во добавлено", "", true),
+		InputComponent("date", "", "date", "Дата поставки", "", true),
 	}
 }
 

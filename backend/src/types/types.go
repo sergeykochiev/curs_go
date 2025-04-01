@@ -6,12 +6,26 @@ import (
 	. "maragu.dev/gomponents"
 )
 
-type TStateType struct {
-	DB *sql.DB
+type StateType struct {
+	DB     *sql.DB
+	MainDB *sql.DB
+}
+
+type DatabaseRecord struct {
+	Id             int
+	Name           string
+	Filepath       string
+	Is_initialized int
 }
 
 type Scanner interface {
 	Scan(dest ...any) error
+}
+
+type HtmlEntity interface {
+	HtmlTemplater
+	ActiveRecorder
+	Identifier
 }
 
 type QueryExecutor interface {
@@ -28,8 +42,13 @@ type ActiveRecorder interface {
 
 type HtmlTemplater interface {
 	GetTableHeader() Group
-	ToHtmlDataRow() Group
+	GetDataRow() Group
 	GetReadableName() string
+	GetEntityPage(recursive bool) Group
+}
+
+type HtmlCreatable interface {
+	GetCreateForm(arg ...HtmlEntity) Group
 }
 
 type Validator interface {

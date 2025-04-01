@@ -3,14 +3,75 @@ package gui
 import (
 	"database/sql"
 	"fmt"
+	"strconv"
 
-	. "github.com/sergeykochiev/curs/backend/entity"
 	. "github.com/sergeykochiev/curs/backend/types"
 	. "github.com/sergeykochiev/curs/backend/util"
 	. "maragu.dev/gomponents"
 	_ "maragu.dev/gomponents/components"
 	. "maragu.dev/gomponents/html"
 )
+
+func NotFoundPage() Node {
+	return Div(
+		Class("w-screen h-screen grid place-items-center text-[32px] font-bold"),
+		Text("404"),
+	)
+}
+
+func ReturnEntityListPage[T HtmlEntity](db QueryExecutor, ent T) (Node, error) {
+	arr, err := GetRows(db, ent, "")
+	if err != nil {
+		return nil, err
+	}
+	return PageComponent(DataTableComponent(ent, arr), ent.GetReadableName()), nil
+}
+
+func ReturnEntityPage[T HtmlEntity](db QueryExecutor, ent T, id string) (Node, error) {
+	int_id, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, err
+	}
+	err = GetSingleRow(db, ent, int_id)
+	if err != nil {
+		return nil, err
+	}
+	return PageComponent(ent.GetEntityPage(true), fmt.Sprintf("%s #%d", ent.GetReadableName(), ent.GetId())), nil
+}
+
+func PageComponent(content Node, heading string) Node {
+	return RootComponent(
+		Main(
+			MainWrapperClass(),
+			H1(
+				Class("text-[20px] font-semibold"),
+				Text(heading),
+			),
+			Class("flex flex-col gap-[12px] w-full"),
+			content,
+		),
+	)
+}
+
+func RelationCard[T HtmlEntity](heading string, ent T) Node {
+	return A(
+		Href(fmt.Sprintf("/%s/%d", ent.GetName(), ent.GetId())),
+		Class("transition-all bg-gray-100 flex flex-col gap-[8px] p-[8px] hover:bg-gray-200 outline outline-[1.5px] outline-transparent hover:outline-gray-400"),
+		H2(Text(heading)),
+		ent.GetEntityPage(false),
+	)
+}
+
+func LabeledField(label string, value string) Node {
+	return Div(
+		Class("flex items-center justify-between w-full"),
+		P(
+			Class("font-medium"),
+			Text(label),
+		),
+		Text(value),
+	)
+}
 
 func LabelComponent(children Node, label string) Node {
 	return Label(
@@ -70,9 +131,10 @@ func DataTableComponent[T interface {
 		If(len(arr) > 0, Div(
 			Class("flex flex-col gap-[2px]"),
 			Map(arr, func(ent T) Node {
-				return Div(
-					Class("bg-gray-100 flex"),
-					ent.ToHtmlDataRow(),
+				return A(
+					Href(fmt.Sprintf("/%s/%d", ent.GetName(), ent.GetId())),
+					Class("transition-all bg-gray-100 flex hover:bg-gray-200 outline outline-[1.5px] outline-transparent hover:outline-gray-400"),
+					ent.GetDataRow(),
 				)
 			}),
 		)),
@@ -115,20 +177,17 @@ func MainPageComponent() Node {
 	return RootComponent(
 		Main(
 			MainWrapperClass(),
-			MainPageSectionComponent("Функции менеджмента", Group{
+			MainPageSectionComponent("Функции", Group{
 				MainPageButtonComponent("/create_order", "Создать заказ"),
-				MainPageButtonComponent("/end_order", "Завершить заказ"),
 				MainPageButtonComponent("/create_spending", "Завести трату ресурса"),
 				MainPageButtonComponent("/create_resupply", "Завести поставку ресурса"),
+				MainPageButtonComponent("/create_resource", "Создать новый ресурс"),
 			}),
 			MainPageSectionComponent("Просмотр данных", Group{
-				MainPageButtonComponent("/resources", "Посмотреть все ресурсы на складе"),
-				MainPageButtonComponent("/orders", "Посмотреть все заказы"),
-				MainPageButtonComponent("/resource_resupplies", "Посмотреть все поставки ресурсов"),
-				MainPageButtonComponent("/resource_spendings", "Посмотреть все траты ресурсов"),
-			}),
-			MainPageSectionComponent("Продвинутые функции", Group{
-				MainPageButtonComponent("/create_resource", "Добавить ресурс на склад вручную"),
+				MainPageButtonComponent("/resource", "Ресурсы на складе"),
+				MainPageButtonComponent("/order", "Заказы"),
+				MainPageButtonComponent("/resource_resupply", "Поставки ресурсов"),
+				MainPageButtonComponent("/resource_spending", "Траты ресурсов"),
 			}),
 		),
 	)
@@ -138,7 +197,7 @@ func MainWrapperClass() Node {
 	return Class("flex flex-col mt-[30px] max-w-[960px] gap-[16px] grid grid-cols-1 w-full")
 }
 
-func DataPageComponent[T interface {
+func DataListPageComponent[T interface {
 	HtmlTemplater
 	Identifier
 }](ent T, arr []T, db *sql.DB) Node {
@@ -183,7 +242,7 @@ func UserFormComponent(signup bool) Node {
 	)
 }
 
-func CreateOrderFormComponent() Node {
+func CreateFormComponent(name string, fields Group) Node {
 	return RootComponent(
 		Main(
 			MainWrapperClass(),
@@ -191,40 +250,16 @@ func CreateOrderFormComponent() Node {
 				Method("post"),
 				Class("flex flex-col gap-[12px]"),
 				H2(
-					Text("Создать заказ"),
+					Text(fmt.Sprintf("Создать %s", name)),
 					Class("text-[20px] font-semibold"),
 				),
-				InputComponent("text", "", "name", "Название заказа", "", true),
-				InputComponent("text", "", "client_name", "Имя клиента", "", true),
-				InputComponent("number", "", "client_phone", "Телефон клиента", "", true),
-				InputComponent("date", "", "date_created", "Дата создания", "", true),
+				fields,
 				ButtonComponent("Создать"),
 			),
 		),
 	)
 }
 
-func EndOrderComponent(arr []*OrderEntity) Node {
-	return RootComponent(
-		Main(
-			MainWrapperClass(),
-			Form(
-				Method("post"),
-				Class("flex flex-col gap-[12px]"),
-				H2(
-					Text("Завершить заказ"),
-					Class("text-[20px] font-semibold"),
-				),
-				SelectComponent(arr, "Выберите необходимый заказ", func(ent *OrderEntity) string { return ent.Name }, "Заказ"+func() string {
-					if len(arr) == 0 {
-						return " (нет подходящих)"
-					} else {
-						return ""
-					}
-				}(), "id", true, -1),
-				InputComponent("date", "", "date_ended", "Дата выполнения", "", true),
-				ButtonComponent("Завершить"),
-			),
-		),
-	)
+func TableCell(value string) Node {
+	return Div(Class("whitespace-nowrap w-full grid place-items-center"), Text(value))
 }
