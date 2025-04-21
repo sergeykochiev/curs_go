@@ -1,45 +1,31 @@
 package entity
 
 import (
-	"database/sql"
 	"fmt"
 	"html"
+	"net/url"
+	"strconv"
 
 	. "github.com/sergeykochiev/curs/backend/gui"
-	. "github.com/sergeykochiev/curs/backend/types"
+	"gorm.io/gorm"
 	. "maragu.dev/gomponents"
 	_ "maragu.dev/gomponents/components"
 	. "maragu.dev/gomponents/html"
 )
 
 type ResourceResupplyEntity struct {
-	Id             int
+	ID             int
 	Resource_id    int
 	Quantity_added int
 	Date           string
 	_Resource      ResourceEntity
 }
 
-func (e *ResourceResupplyEntity) ScanRow(r Scanner) error {
-	return r.Scan(&e.Id, &e.Resource_id, &e.Quantity_added, &e.Date, &e._Resource.Id, &e._Resource.Name, &e._Resource.Date_last_updated, &e._Resource.Cost_by_one, &e._Resource.Quantity)
-}
-
-func (e *ResourceResupplyEntity) GetSelectWhereQuery(where string) string {
-	return "select * from resource_resupply left join resource on resource_resupply.resource_id = resource.id " + where
-}
-
-func (e *ResourceResupplyEntity) Insert(db QueryExecutor) (sql.Result, error) {
-	return db.Exec("insert into resource_resupply (resource_id, quantity_added, date) values ($1, $2, $3)", e.Resource_id, e.Quantity_added, e.Date)
-}
-
-// TODO implement me
-func (e *ResourceResupplyEntity) Update(db QueryExecutor) (sql.Result, error) {
-	return db.Exec("")
-}
+func (e *ResourceResupplyEntity) FetchForSelect(db *gorm.DB)
 
 func (e *ResourceResupplyEntity) GetDataRow() Group {
 	return Group{
-		Div(Class("px-[2px] grid place-items-center"), Text(html.EscapeString(fmt.Sprintf("%d", e.Id)))),
+		Div(Class("px-[2px] grid place-items-center"), Text(html.EscapeString(fmt.Sprintf("%d", e.ID)))),
 		TableCell(e._Resource.Name),
 		TableCell(fmt.Sprintf("%d", e.Quantity_added)),
 		TableCell(e.Date),
@@ -67,7 +53,9 @@ func (e ResourceResupplyEntity) GetEntityPage(recursive bool) Group {
 	}
 }
 
-func (e ResourceResupplyEntity) GetCreateForm(res []*ResourceEntity) Group {
+func (e ResourceResupplyEntity) GetCreateForm(db *gorm.DB) Group {
+	var res []*ResourceEntity
+	db.Find(&res)
 	return Group{
 		SelectComponent(res, "", func(r *ResourceEntity) string { return r.Name }, "Выберите ресурс", "resource_id", true, -1),
 		InputComponent("number", "", "quantity_added", "Кол-во добавлено", "", true),
@@ -84,9 +72,40 @@ func (e *ResourceResupplyEntity) Validate() bool {
 }
 
 func (e *ResourceResupplyEntity) GetId() int {
-	return e.Id
+	return e.ID
 }
 
 func (e *ResourceResupplyEntity) GetName() string {
 	return "resource_resupply"
+}
+
+func (e *ResourceResupplyEntity) ValidateAndParseForm(form url.Values) bool {
+	if !form.Has("resource_id") || !form.Has("quantity_added") || !form.Has("date") {
+		return false
+	}
+	var err error
+	e.Resource_id, err = strconv.Atoi(form.Get("resource_id"))
+	if err != nil {
+		return false
+	}
+	e.Quantity_added, err = strconv.Atoi(form.Get("quantity_added"))
+	if err != nil {
+		return false
+	}
+	e.Date = form.Get("date")
+	return true
+}
+
+func (e *ResourceResupplyEntity) AfterCreate(tx *gorm.DB) (err error) {
+	e._Resource.ID = e.Resource_id
+	res := tx.First(&e._Resource)
+	if res.Error != nil {
+		return res.Error
+	}
+	e._Resource.Quantity += e.Quantity_added
+	res = tx.Updates(&e._Resource)
+	if res.Error != nil {
+		return res.Error
+	}
+	return
 }

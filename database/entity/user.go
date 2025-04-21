@@ -1,27 +1,16 @@
 package entity
 
 import (
-	"database/sql"
-
-	. "github.com/sergeykochiev/curs/backend/types"
 	. "github.com/sergeykochiev/curs/backend/gui"
 	. "maragu.dev/gomponents"
 	_ "maragu.dev/gomponents/components"
 )
 
 type UserEntity struct {
-	Id       int
+	ID       int
 	Name     string
 	Password string
 	Is_admin bool
-}
-
-func (e *UserEntity) ScanRow(r Scanner) error {
-	return r.Scan(&e.Id, &e.Name, &e.Password, &e.Is_admin)
-}
-
-func (e *UserEntity) InsertRow(db *sql.DB) (sql.Result, error) {
-	return db.Exec("insert into user (name, password, is_admin) values ($1, $2, $3)", e.Name, e.Password, e.Is_admin)
 }
 
 // func (e *UserEntity) getHtmlCreateForm() Group {
@@ -57,5 +46,5 @@ func (e *UserEntity) CheckPassword(password string) bool {
 }
 
 func (e *UserEntity) GetId() int {
-	return e.Id
+	return e.ID
 }

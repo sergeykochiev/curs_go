@@ -4,17 +4,19 @@ import (
 	"database/sql"
 	"fmt"
 	"html"
+	"net/url"
+	"strconv"
 
 	. "github.com/sergeykochiev/curs/backend/gui"
-	. "github.com/sergeykochiev/curs/backend/types"
 	. "github.com/sergeykochiev/curs/backend/util"
+	"gorm.io/gorm"
 	. "maragu.dev/gomponents"
 	_ "maragu.dev/gomponents/components"
 	. "maragu.dev/gomponents/html"
 )
 
 type OrderEntity struct {
-	Id           int
+	ID           int
 	Name         string
 	Client_name  string
 	Client_phone string
@@ -25,21 +27,9 @@ type OrderEntity struct {
 	_Creator     UserEntity
 }
 
-func (e *OrderEntity) ScanRow(r Scanner) error {
-	return r.Scan(&e.Id, &e.Name, &e.Client_name, &e.Client_phone, &e.Date_created, &e.Creator_id, &e.Date_ended, &e.Ended, &e._Creator.Name, &e._Creator.Is_admin)
-}
-
-func (e *OrderEntity) GetSelectWhereQuery(where string) string {
-	return "SELECT \"order\".id, \"order\".name, client_name, client_phone, date_created, creator_id, date_ended, ended, user.name, is_admin FROM \"order\" LEFT JOIN user ON \"order\".creator_id = user.id " + where
-}
-
-func (e *OrderEntity) Insert(db QueryExecutor) (sql.Result, error) {
-	return db.Exec("insert into \"order\" (name, client_name, client_phone, date_created, creator_id) values ($1, $2, $3, $4, $5)", e.Name, e.Client_name, e.Client_phone, e.Date_created, e.Creator_id)
-}
-
 func (e OrderEntity) GetDataRow() Group {
 	return Group{
-		Div(Class("px-[2px] grid place-items-center"), Text(html.EscapeString(fmt.Sprintf("%d", e.Id)))),
+		Div(Class("px-[2px] grid place-items-center"), Text(html.EscapeString(fmt.Sprintf("%d", e.ID)))),
 		TableCell(e.Name),
 		TableCell(e.Client_name),
 		TableCell(e.Client_phone),
@@ -79,7 +69,7 @@ func (e OrderEntity) GetEntityPage(recursive bool) Group {
 	}
 }
 
-func (e OrderEntity) GetCreateForm() Group {
+func (e OrderEntity) GetCreateForm(db *gorm.DB) Group {
 	return Group{
 		InputComponent("text", "", "name", "Название заказа", "", true),
 		InputComponent("text", "", "client_name", "Имя клиента", "", true),
@@ -93,7 +83,7 @@ func (e OrderEntity) GetReadableName() string {
 }
 
 func (e OrderEntity) GetId() int {
-	return e.Id
+	return e.ID
 }
 
 func (e OrderEntity) GetName() string {
@@ -102,4 +92,17 @@ func (e OrderEntity) GetName() string {
 
 func (e *OrderEntity) Validate() bool {
 	return len(e.Client_phone) == 11
+}
+
+func (e *OrderEntity) ValidateAndParseForm(form url.Values) bool {
+	if !form.Has("name") || !form.Has("client_name") || !form.Has("client_phone") || !form.Has("date_created") {
+		return false
+	}
+	e.Client_name = form.Get("client_name")
+	e.Client_phone = form.Get("client_phone")
+	e.Name = form.Get("name")
+	e.Date_created = form.Get("date_created")
+	var err error
+	e.Creator_id, err = strconv.Atoi(form.Get("userid"))
+	return err != nil
 }

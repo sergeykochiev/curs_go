@@ -1,45 +1,29 @@
 package entity
 
 import (
-	"database/sql"
 	"fmt"
 	"html"
+	"net/url"
+	"strconv"
 
 	. "github.com/sergeykochiev/curs/backend/gui"
-	. "github.com/sergeykochiev/curs/backend/types"
-	. "github.com/sergeykochiev/curs/backend/util"
+	"gorm.io/gorm"
 	. "maragu.dev/gomponents"
 	_ "maragu.dev/gomponents/components"
 	. "maragu.dev/gomponents/html"
 )
 
 type ResourceEntity struct {
-	Id                int
+	ID                int
 	Name              string
 	Date_last_updated string
 	Cost_by_one       float32
 	Quantity          int
 }
 
-func (e *ResourceEntity) ScanRow(r Scanner) error {
-	return r.Scan(&e.Id, &e.Name, &e.Date_last_updated, &e.Cost_by_one, &e.Quantity)
-}
-
-func (e *ResourceEntity) GetSelectWhereQuery(where string) string {
-	return "select * from \"resource\" " + where
-}
-
-func (e *ResourceEntity) Insert(db QueryExecutor) (sql.Result, error) {
-	return db.Exec("insert into resource (name, date_last_updated, cost_by_one, quantity) values ($1, $2, $3, $4)", e.Name, GetCurrentTime(), e.Cost_by_one, e.Quantity)
-}
-
-func (e *ResourceEntity) Update(db QueryExecutor) (sql.Result, error) {
-	return db.Exec("update resource set name = $1, date_last_updated = $2, cost_by_one = $3, quantity = $4 where id = $5", e.Name, GetCurrentTime(), e.Cost_by_one, e.Quantity, e.Id)
-}
-
 func (e *ResourceEntity) GetDataRow() Group {
 	return Group{
-		Div(Class("px-[2px] grid place-items-center"), Text(html.EscapeString(fmt.Sprintf("%d", e.Id)))),
+		Div(Class("px-[2px] grid place-items-center"), Text(html.EscapeString(fmt.Sprintf("%d", e.ID)))),
 		TableCell(e.Name),
 		TableCell(e.Date_last_updated),
 		TableCell(fmt.Sprintf("%f", e.Cost_by_one)),
@@ -66,7 +50,7 @@ func (e ResourceEntity) GetEntityPage(recursive bool) Group {
 	}
 }
 
-func (e ResourceEntity) GetCreateForm() Group {
+func (e ResourceEntity) GetCreateForm(db *gorm.DB) Group {
 	return Group{
 		InputComponent("text", "", "name", "Название", "", true),
 		InputComponent("text", "", "cost_by_one", "Стоимость за единицу", "", true),
@@ -78,7 +62,7 @@ func (e *ResourceEntity) GetReadableName() string {
 }
 
 func (e *ResourceEntity) GetId() int {
-	return e.Id
+	return e.ID
 }
 
 func (e *ResourceEntity) Validate() bool {
@@ -87,4 +71,17 @@ func (e *ResourceEntity) Validate() bool {
 
 func (e *ResourceEntity) GetName() string {
 	return "resource"
+}
+
+func (e *ResourceEntity) ValidateAndParseForm(form url.Values) bool {
+	if !form.Has("name") || !form.Has("cost_by_one") {
+		return false
+	}
+	e.Name = form.Get("name")
+	cost_by_one, err := strconv.Atoi(form.Get("cost_by_one"))
+	if err != nil {
+		return false
+	}
+	e.Cost_by_one = float32(cost_by_one)
+	return true
 }

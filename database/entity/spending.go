@@ -1,19 +1,21 @@
 package entity
 
 import (
-	"database/sql"
+	"errors"
 	"fmt"
 	"html"
+	"net/url"
+	"strconv"
 
 	. "github.com/sergeykochiev/curs/backend/gui"
-	. "github.com/sergeykochiev/curs/backend/types"
+	"gorm.io/gorm"
 	. "maragu.dev/gomponents"
 	_ "maragu.dev/gomponents/components"
 	. "maragu.dev/gomponents/html"
 )
 
 type ResourceSpendingEntity struct {
-	Id             int
+	ID             int
 	Order_id       int
 	Resource_id    int
 	Quantity_spent int
@@ -22,26 +24,9 @@ type ResourceSpendingEntity struct {
 	_Resource      ResourceEntity
 }
 
-func (e *ResourceSpendingEntity) ScanRow(r Scanner) error {
-	return r.Scan(&e.Id, &e.Order_id, &e.Resource_id, &e.Quantity_spent, &e.Date, &e._Order.Id, &e._Order.Name, &e._Order.Client_name, &e._Order.Client_phone, &e._Order.Date_created, &e._Order.Creator_id, &e._Order.Date_ended, &e._Order.Ended, &e._Resource.Id, &e._Resource.Name, &e._Resource.Date_last_updated, &e._Resource.Cost_by_one, &e._Resource.Quantity)
-}
-
-func (e *ResourceSpendingEntity) GetSelectWhereQuery(where string) string {
-	return "select * from resource_spending left join \"order\" on \"order\".id = resource_spending.order_id left join resource on resource.id = resource_spending.resource_id " + where
-}
-
-func (e *ResourceSpendingEntity) Insert(db QueryExecutor) (sql.Result, error) {
-	return db.Exec("insert into resource_spending (order_id, resource_id, quantity_spent, date) values ($1, $2, $3, $4)", e.Order_id, e.Resource_id, e.Quantity_spent, e.Date)
-}
-
-// TODO implement me
-func (e *ResourceSpendingEntity) Update(db QueryExecutor) (sql.Result, error) {
-	return db.Exec("")
-}
-
 func (e *ResourceSpendingEntity) GetDataRow() Group {
 	return Group{
-		Div(Class("px-[2px] grid place-items-center"), Text(html.EscapeString(fmt.Sprintf("%d", e.Id)))),
+		Div(Class("px-[2px] grid place-items-center"), Text(html.EscapeString(fmt.Sprintf("%d", e.ID)))),
 		TableCell(e._Order.Name),
 		TableCell(e._Resource.Name),
 		TableCell(fmt.Sprintf("%d", e.Quantity_spent)),
@@ -70,7 +55,11 @@ func (e ResourceSpendingEntity) GetEntityPage(recursive bool) Group {
 	}
 }
 
-func (e ResourceSpendingEntity) GetCreateForm(ord []*OrderEntity, res []*ResourceEntity) Group {
+func (e ResourceSpendingEntity) GetCreateForm(db *gorm.DB) Group {
+	var ord []*OrderEntity
+	var res []*ResourceEntity
+	db.Find(&ord)
+	db.Find(&res)
 	return Group{
 		SelectComponent(ord, "", func(r *OrderEntity) string { return r.Name }, "Выберите заказ, на который был потрачен ресурс", "order_id", true, -1),
 		SelectComponent(res, "", func(r *ResourceEntity) string { return r.Name }, "Выберите ресурс", "resource_id", true, -1),
@@ -88,9 +77,47 @@ func (e *ResourceSpendingEntity) Validate() bool {
 }
 
 func (e *ResourceSpendingEntity) GetId() int {
-	return e.Id
+	return e.ID
 }
 
 func (e *ResourceSpendingEntity) GetName() string {
 	return "resource_spending"
+}
+
+func (e *ResourceSpendingEntity) ValidateAndParseForm(form url.Values) bool {
+	if !form.Has("order_id") || !form.Has("resource_id") || !form.Has("quantity_spent") || !form.Has("date") {
+		return false
+	}
+	var err error
+	e.Order_id, err = strconv.Atoi(form.Get("order_id"))
+	if err != nil {
+		return false
+	}
+	e.Resource_id, err = strconv.Atoi(form.Get("resource_id"))
+	if err != nil {
+		return false
+	}
+	e.Quantity_spent, err = strconv.Atoi(form.Get("quantity_spent"))
+	if err != nil {
+		return false
+	}
+	e.Date = form.Get("date")
+	return true
+}
+
+func (e *ResourceSpendingEntity) AfterCreate(tx *gorm.DB) (err error) {
+	e._Resource.ID = e.Resource_id
+	res := tx.First(&e._Resource)
+	if res.Error != nil {
+		return res.Error
+	}
+	if e._Resource.Quantity < e.Quantity_spent {
+		return errors.New("quantity_spent is more then resource quantity")
+	}
+	e._Resource.Quantity -= e.Quantity_spent
+	res = tx.Updates(&e._Resource)
+	if res.Error != nil {
+		return res.Error
+	}
+	return
 }

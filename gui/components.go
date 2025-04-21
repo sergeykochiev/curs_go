@@ -3,7 +3,6 @@ package gui
 import (
 	"database/sql"
 	"fmt"
-	"strconv"
 
 	. "github.com/sergeykochiev/curs/backend/types"
 	. "github.com/sergeykochiev/curs/backend/util"
@@ -19,24 +18,12 @@ func NotFoundPage() Node {
 	)
 }
 
-func ReturnEntityListPage[T HtmlEntity](db QueryExecutor, ent T) (Node, error) {
-	arr, err := GetRows(db, ent, "")
-	if err != nil {
-		return nil, err
-	}
-	return PageComponent(DataTableComponent(ent, arr), ent.GetReadableName()), nil
+func ReturnEntityListPage[T HtmlEntity](ent T, arr []T) Node {
+	return PageComponent(DataTableComponent(ent, arr), ent.GetReadableName())
 }
 
-func ReturnEntityPage[T HtmlEntity](db QueryExecutor, ent T, id string) (Node, error) {
-	int_id, err := strconv.Atoi(id)
-	if err != nil {
-		return nil, err
-	}
-	err = GetSingleRow(db, ent, int_id)
-	if err != nil {
-		return nil, err
-	}
-	return PageComponent(ent.GetEntityPage(true), fmt.Sprintf("%s #%d", ent.GetReadableName(), ent.GetId())), nil
+func ReturnEntityPage[T HtmlEntity](ent T) Node {
+	return PageComponent(ent.GetEntityPage(true), fmt.Sprintf("%s #%d", ent.GetReadableName(), ent.GetId()))
 }
 
 func PageComponent(content Node, heading string) Node {

@@ -1,43 +1,23 @@
 package types
 
 import (
-	"database/sql"
+	"net/url"
 
+	"gorm.io/gorm"
 	. "maragu.dev/gomponents"
 )
 
-type StateType struct {
-	DB     *sql.DB
-	MainDB *sql.DB
-}
-
-type DatabaseRecord struct {
-	Id             int
-	Name           string
-	Filepath       string
-	Is_initialized int
-}
-
-type Scanner interface {
-	Scan(dest ...any) error
+type CrudEntity interface {
+	Get()
+	GetOne()
+	Insert()
+	Update()
+	Delete()
 }
 
 type HtmlEntity interface {
 	HtmlTemplater
-	ActiveRecorder
 	Identifier
-}
-
-type QueryExecutor interface {
-	Exec(query string, args ...any) (sql.Result, error)
-	QueryRow(query string, args ...any) *sql.Row
-	Query(query string, args ...any) (*sql.Rows, error)
-}
-
-type ActiveRecorder interface {
-	ScanRow(r Scanner) error
-	GetSelectWhereQuery(where string) string
-	Insert(db QueryExecutor) (sql.Result, error)
 }
 
 type HtmlTemplater interface {
@@ -45,14 +25,15 @@ type HtmlTemplater interface {
 	GetDataRow() Group
 	GetReadableName() string
 	GetEntityPage(recursive bool) Group
-}
-
-type HtmlCreatable interface {
-	GetCreateForm(arg ...HtmlEntity) Group
+	GetCreateForm(db *gorm.DB) Group
 }
 
 type Validator interface {
 	Validate() bool
+}
+
+type FormParser interface {
+	ValidateAndParseForm(form url.Values) bool
 }
 
 type Identifier interface {
