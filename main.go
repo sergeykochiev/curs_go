@@ -6,9 +6,6 @@ import (
 	"net/http"
 	"reflect"
 
-	_ "maragu.dev/gomponents/components"
-	_ "modernc.org/sqlite"
-
 	"github.com/go-chi/chi/v5"
 	"github.com/sergeykochiev/curs/backend/database"
 	. "github.com/sergeykochiev/curs/backend/database/entity"
@@ -51,23 +48,23 @@ func EntityRouterFactory[T interface {
 			http.Error(w, res.Error.Error(), http.StatusInternalServerError)
 			return
 		}
-		ReturnEntityListPage(entity, arr.([]T)).Render(w)
+		EntityListPage(entity, arr.([]T)).Render(w)
 	}
-	getOnePage := func(w http.ResponseWriter, r *http.Request) { ReturnEntityPage(entity).Render(w) }
+	getOnePage := func(w http.ResponseWriter, r *http.Request) { EntityPage(entity).Render(w) }
 	getCreatePage := func(w http.ResponseWriter, r *http.Request) {
 		CreateFormComponent(entity.GetReadableName(), entity.GetCreateForm(db)).Render(w)
 	}
 	return func(r chi.Router) {
-		r.Use(WithAuthUserIdContext)
+		r.Use(withAuthUserIdContext)
 		r.Get("/", getAllPage)
 		r.Get("/create", getCreatePage)
 		r.Route("/", func(r chi.Router) {
-			r.Use(WithFormEntityContextFactory(entity))
-			r.Use(WithEntityValidation)
+			r.Use(withFormEntityContextFactory(entity))
+			r.Use(withEntityValidation)
 			r.Post("/", create)
 		})
 		r.Route("/{id}", func(r chi.Router) {
-			r.Use(WithDbEntityContextFactory(entity, db))
+			r.Use(withDbEntityContextFactory(entity, db))
 			r.Get("/", getOnePage)
 			// r.Delete("/", delete)
 		})

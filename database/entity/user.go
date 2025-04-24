@@ -33,7 +33,7 @@ type UserEntity struct {
 
 func (e *UserEntity) GetEntityPage(recursive bool) Group {
 	return Group{
-		LabeledField("Имя", e.Name),
+		LabeledFieldComponent("Имя", e.Name),
 	}
 }
 

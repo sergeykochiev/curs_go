@@ -21,34 +21,32 @@ type ResourceResupplyEntity struct {
 	_Resource      ResourceEntity
 }
 
-func (e *ResourceResupplyEntity) FetchForSelect(db *gorm.DB)
-
 func (e *ResourceResupplyEntity) GetDataRow() Group {
 	return Group{
 		Div(Class("px-[2px] grid place-items-center"), Text(html.EscapeString(fmt.Sprintf("%d", e.ID)))),
-		TableCell(e._Resource.Name),
-		TableCell(fmt.Sprintf("%d", e.Quantity_added)),
-		TableCell(e.Date),
-		TableCell(fmt.Sprintf("%f", e._Resource.Cost_by_one)),
+		TableCellComponent(e._Resource.Name),
+		TableCellComponent(fmt.Sprintf("%d", e.Quantity_added)),
+		TableCellComponent(e.Date),
+		TableCellComponent(fmt.Sprintf("%f", e._Resource.Cost_by_one)),
 	}
 }
 
 func (e *ResourceResupplyEntity) GetTableHeader() Group {
 	return Group{
 		Div(Class("px-[2px] grid place-items-center"), Text("ID")),
-		TableCell("Ресурс"),
-		TableCell("Количество добавлено (единиц)"),
-		TableCell("Дата поставки"),
-		TableCell("Цена за один"),
+		TableCellComponent("Ресурс"),
+		TableCellComponent("Количество добавлено (единиц)"),
+		TableCellComponent("Дата поставки"),
+		TableCellComponent("Цена за один"),
 	}
 }
 
 func (e ResourceResupplyEntity) GetEntityPage(recursive bool) Group {
 	return Group{
-		LabeledField("Количество добавлено (единиц)", fmt.Sprintf("%d", e.Quantity_added)),
-		LabeledField("Дата поставки", e.Date),
+		LabeledFieldComponent("Количество добавлено (единиц)", fmt.Sprintf("%d", e.Quantity_added)),
+		LabeledFieldComponent("Дата поставки", e.Date),
 		If(recursive, Group{
-			RelationCard(fmt.Sprintf("Потрачен ресурс #%d", e.Resource_id), &e._Resource),
+			RelationCardComponent(fmt.Sprintf("Потрачен ресурс #%d", e.Resource_id), &e._Resource),
 		}),
 	}
 }

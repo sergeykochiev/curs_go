@@ -24,29 +24,29 @@ type ResourceEntity struct {
 func (e *ResourceEntity) GetDataRow() Group {
 	return Group{
 		Div(Class("px-[2px] grid place-items-center"), Text(html.EscapeString(fmt.Sprintf("%d", e.ID)))),
-		TableCell(e.Name),
-		TableCell(e.Date_last_updated),
-		TableCell(fmt.Sprintf("%f", e.Cost_by_one)),
-		TableCell(fmt.Sprintf("%d", e.Quantity)),
+		TableCellComponent(e.Name),
+		TableCellComponent(e.Date_last_updated),
+		TableCellComponent(fmt.Sprintf("%f", e.Cost_by_one)),
+		TableCellComponent(fmt.Sprintf("%d", e.Quantity)),
 	}
 }
 
 func (e *ResourceEntity) GetTableHeader() Group {
 	return Group{
 		Div(Class("px-[2px] grid place-items-center"), Text("ID")),
-		TableCell("Наименование"),
-		TableCell("Дата обновления"),
-		TableCell("Цена за единицу"),
-		TableCell("Количество"),
+		TableCellComponent("Наименование"),
+		TableCellComponent("Дата обновления"),
+		TableCellComponent("Цена за единицу"),
+		TableCellComponent("Количество"),
 	}
 }
 
 func (e ResourceEntity) GetEntityPage(recursive bool) Group {
 	return Group{
-		LabeledField("Наименование", e.Name),
-		LabeledField("Дата обновления", e.Date_last_updated),
-		LabeledField("Цена за единицу", fmt.Sprintf("%f", e.Cost_by_one)),
-		LabeledField("Количество", fmt.Sprintf("%d", e.Quantity)),
+		LabeledFieldComponent("Наименование", e.Name),
+		LabeledFieldComponent("Дата обновления", e.Date_last_updated),
+		LabeledFieldComponent("Цена за единицу", fmt.Sprintf("%f", e.Cost_by_one)),
+		LabeledFieldComponent("Количество", fmt.Sprintf("%d", e.Quantity)),
 	}
 }
 

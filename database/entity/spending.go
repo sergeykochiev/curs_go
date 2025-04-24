@@ -27,30 +27,30 @@ type ResourceSpendingEntity struct {
 func (e *ResourceSpendingEntity) GetDataRow() Group {
 	return Group{
 		Div(Class("px-[2px] grid place-items-center"), Text(html.EscapeString(fmt.Sprintf("%d", e.ID)))),
-		TableCell(e._Order.Name),
-		TableCell(e._Resource.Name),
-		TableCell(fmt.Sprintf("%d", e.Quantity_spent)),
-		TableCell(e.Date),
+		TableCellComponent(e._Order.Name),
+		TableCellComponent(e._Resource.Name),
+		TableCellComponent(fmt.Sprintf("%d", e.Quantity_spent)),
+		TableCellComponent(e.Date),
 	}
 }
 
 func (e *ResourceSpendingEntity) GetTableHeader() Group {
 	return Group{
 		Div(Class("px-[2px] grid place-items-center"), Text("ID")),
-		TableCell("Название заказа"),
-		TableCell("Наименование ресурса"),
-		TableCell("Количество потрачено (единиц)"),
-		TableCell("Дата траты"),
+		TableCellComponent("Название заказа"),
+		TableCellComponent("Наименование ресурса"),
+		TableCellComponent("Количество потрачено (единиц)"),
+		TableCellComponent("Дата траты"),
 	}
 }
 
 func (e ResourceSpendingEntity) GetEntityPage(recursive bool) Group {
 	return Group{
-		LabeledField("Количество потрачено (единиц)", fmt.Sprintf("%d", e.Quantity_spent)),
-		LabeledField("Дата траты", e.Date),
+		LabeledFieldComponent("Количество потрачено (единиц)", fmt.Sprintf("%d", e.Quantity_spent)),
+		LabeledFieldComponent("Дата траты", e.Date),
 		If(recursive, Group{
-			RelationCard(fmt.Sprintf("Потрачено на заказ #%d", e.Order_id), &e._Order),
-			RelationCard(fmt.Sprintf("Потрачен ресурс #%d", e.Resource_id), &e._Resource),
+			RelationCardComponent(fmt.Sprintf("Потрачено на заказ #%d", e.Order_id), &e._Order),
+			RelationCardComponent(fmt.Sprintf("Потрачен ресурс #%d", e.Resource_id), &e._Resource),
 		}),
 	}
 }

@@ -30,41 +30,41 @@ type OrderEntity struct {
 func (e OrderEntity) GetDataRow() Group {
 	return Group{
 		Div(Class("px-[2px] grid place-items-center"), Text(html.EscapeString(fmt.Sprintf("%d", e.ID)))),
-		TableCell(e.Name),
-		TableCell(e.Client_name),
-		TableCell(e.Client_phone),
-		TableCell(e.Date_created),
-		TableCell(ConditionalArg(e.Ended == 1, "Да", "Нет")),
-		TableCell(e.Date_ended.String),
-		TableCell(e._Creator.Name),
+		TableCellComponent(e.Name),
+		TableCellComponent(e.Client_name),
+		TableCellComponent(e.Client_phone),
+		TableCellComponent(e.Date_created),
+		TableCellComponent(ConditionalArg(e.Ended == 1, "Да", "Нет")),
+		TableCellComponent(e.Date_ended.String),
+		TableCellComponent(e._Creator.Name),
 	}
 }
 
 func (e OrderEntity) GetTableHeader() Group {
 	return Group{
 		Div(Class("px-[2px] grid place-items-center"), Text("ID")),
-		TableCell("Название"),
-		TableCell("Имя клиента"),
-		TableCell("Телефон клиента"),
-		TableCell("Дата создания"),
-		TableCell("Завершен"),
-		TableCell("Дата завершения"),
-		TableCell("Создатель"),
+		TableCellComponent("Название"),
+		TableCellComponent("Имя клиента"),
+		TableCellComponent("Телефон клиента"),
+		TableCellComponent("Дата создания"),
+		TableCellComponent("Завершен"),
+		TableCellComponent("Дата завершения"),
+		TableCellComponent("Создатель"),
 	}
 }
 
 func (e OrderEntity) GetEntityPage(recursive bool) Group {
 	return Group{
-		LabeledField("Название", e.Name),
-		LabeledField("Имя клиента", e.Client_name),
-		LabeledField("Телефон клиента", e.Client_phone),
-		LabeledField("Дата создания", e.Date_created),
-		LabeledField("Завершен", ConditionalArg(e.Ended == 1, "ДА", "НЕТ")),
-		LabeledField("Дата завершения", ConditionalArg(e.Date_ended.Valid, e.Date_ended.String, "-")),
+		LabeledFieldComponent("Название", e.Name),
+		LabeledFieldComponent("Имя клиента", e.Client_name),
+		LabeledFieldComponent("Телефон клиента", e.Client_phone),
+		LabeledFieldComponent("Дата создания", e.Date_created),
+		LabeledFieldComponent("Завершен", ConditionalArg(e.Ended == 1, "ДА", "НЕТ")),
+		LabeledFieldComponent("Дата завершения", ConditionalArg(e.Date_ended.Valid, e.Date_ended.String, "-")),
 		If(recursive, Div(
 			Class("bg-gray-100 flex flex-col gap-[8px] p-[8px]"),
 			H2(Text(fmt.Sprintf("Создал пользователь #%d", e.Creator_id))),
-			LabeledField("Имя", e._Creator.Name),
+			LabeledFieldComponent("Имя", e._Creator.Name),
 		)),
 	}
 }

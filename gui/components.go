@@ -18,11 +18,11 @@ func NotFoundPage() Node {
 	)
 }
 
-func ReturnEntityListPage[T HtmlEntity](ent T, arr []T) Node {
+func EntityListPage[T HtmlEntity](ent T, arr []T) Node {
 	return PageComponent(DataTableComponent(ent, arr), ent.GetReadableName())
 }
 
-func ReturnEntityPage[T HtmlEntity](ent T) Node {
+func EntityPage[T HtmlEntity](ent T) Node {
 	return PageComponent(ent.GetEntityPage(true), fmt.Sprintf("%s #%d", ent.GetReadableName(), ent.GetId()))
 }
 
@@ -40,7 +40,7 @@ func PageComponent(content Node, heading string) Node {
 	)
 }
 
-func RelationCard[T HtmlEntity](heading string, ent T) Node {
+func RelationCardComponent[T HtmlEntity](heading string, ent T) Node {
 	return A(
 		Href(fmt.Sprintf("/%s/%d", ent.GetName(), ent.GetId())),
 		Class("transition-all bg-gray-100 flex flex-col gap-[8px] p-[8px] hover:bg-gray-200 outline outline-[1.5px] outline-transparent hover:outline-gray-400"),
@@ -49,7 +49,7 @@ func RelationCard[T HtmlEntity](heading string, ent T) Node {
 	)
 }
 
-func LabeledField(label string, value string) Node {
+func LabeledFieldComponent(label string, value string) Node {
 	return Div(
 		Class("flex items-center justify-between w-full"),
 		P(
@@ -247,6 +247,6 @@ func CreateFormComponent(name string, fields Group) Node {
 	)
 }
 
-func TableCell(value string) Node {
+func TableCellComponent(value string) Node {
 	return Div(Class("whitespace-nowrap w-full grid place-items-center"), Text(value))
 }
