@@ -8,6 +8,7 @@ require (
 	gorm.io/driver/sqlite v1.5.7
 	gorm.io/gorm v1.25.12
 	maragu.dev/gomponents v1.0.0
+	maragu.dev/gomponents-heroicons/v3 v3.0.0
 )
 
 require (

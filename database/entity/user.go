@@ -48,3 +48,7 @@ func (e *UserEntity) CheckPassword(password string) bool {
 func (e *UserEntity) GetId() int {
 	return e.ID
 }
+
+func (e UserEntity) TableName() string {
+	return "user"
+}

@@ -21,6 +21,26 @@ type ResourceEntity struct {
 	Quantity          int
 }
 
+func (e *ResourceEntity) GetFilters() Group {
+	return Group{
+		StringFilterComponent("Название включает", "name"),
+		DateFilterComponent("Дата последнего обновления в диапазоне", "date_last_updated"),
+	}
+}
+
+func (e *ResourceEntity) GetFilteredDb(filters url.Values, db *gorm.DB) *gorm.DB {
+	if filters.Has("date_last_updated_lo") && filters.Get("date_last_updated_lo") != "" {
+		db = db.Where("date_last_updated > ?", filters.Get("date_last_updated_lo"))
+	}
+	if filters.Has("date_last_updated_hi") && filters.Get("date_last_updated_hi") != "" {
+		db = db.Where("date_last_updated < ?", filters.Get("date_last_updated_hi"))
+	}
+	if filters.Has("name") && filters.Get("name") != "" {
+		db = db.Where("name LIKE ?", "%"+filters.Get("name")+"%")
+	}
+	return db
+}
+
 func (e *ResourceEntity) GetDataRow() Group {
 	return Group{
 		Div(Class("px-[2px] grid place-items-center"), Text(html.EscapeString(fmt.Sprintf("%d", e.ID)))),
@@ -52,8 +72,8 @@ func (e ResourceEntity) GetEntityPage(recursive bool) Group {
 
 func (e ResourceEntity) GetCreateForm(db *gorm.DB) Group {
 	return Group{
-		InputComponent("text", "", "name", "Название", "", true),
-		InputComponent("text", "", "cost_by_one", "Стоимость за единицу", "", true),
+		LabeledInputComponent("text", "", "name", "Название", "", true),
+		LabeledInputComponent("text", "", "cost_by_one", "Стоимость за единицу", "", true),
 	}
 }
 
@@ -69,7 +89,7 @@ func (e *ResourceEntity) Validate() bool {
 	return true
 }
 
-func (e *ResourceEntity) GetName() string {
+func (e *ResourceEntity) TableName() string {
 	return "resource"
 }
 

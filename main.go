@@ -9,7 +9,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/sergeykochiev/curs/backend/database"
 	. "github.com/sergeykochiev/curs/backend/database/entity"
-	. "github.com/sergeykochiev/curs/backend/gui"
+	"github.com/sergeykochiev/curs/backend/gui"
+	"github.com/sergeykochiev/curs/backend/handler"
+	"github.com/sergeykochiev/curs/backend/middleware"
 	"github.com/sergeykochiev/curs/backend/types"
 	"gorm.io/gorm"
 )
@@ -17,8 +19,10 @@ import (
 const addr = "localhost:3003"
 
 func EntityRouterFactory[T interface {
-	types.HtmlEntity
+	types.HtmlTemplater
+	types.Identifier
 	types.FormParser
+	types.Filterator
 }](db *gorm.DB, entity T) func(r chi.Router) {
 	create := func(w http.ResponseWriter, r *http.Request) {
 		res := db.Create(entity)
@@ -42,29 +46,30 @@ func EntityRouterFactory[T interface {
 	// 	}
 	// }
 	getAllPage := func(w http.ResponseWriter, r *http.Request) {
-		arr := reflect.MakeSlice(reflect.TypeOf(entity), 0, 0).Interface()
-		res := db.Find(&arr)
+		filteredDb := entity.GetFilteredDb(r.URL.Query(), db)
+		arr := reflect.MakeSlice(reflect.SliceOf(reflect.TypeOf(entity)), 0, 0).Interface()
+		res := filteredDb.Find(&arr)
 		if res.Error != nil {
 			http.Error(w, res.Error.Error(), http.StatusInternalServerError)
 			return
 		}
-		EntityListPage(entity, arr.([]T)).Render(w)
+		gui.EntityListPage(entity, arr.([]T)).Render(w)
 	}
-	getOnePage := func(w http.ResponseWriter, r *http.Request) { EntityPage(entity).Render(w) }
+	getOnePage := func(w http.ResponseWriter, r *http.Request) { gui.EntityPage(entity).Render(w) }
 	getCreatePage := func(w http.ResponseWriter, r *http.Request) {
-		CreateFormComponent(entity.GetReadableName(), entity.GetCreateForm(db)).Render(w)
+		gui.CreateFormComponent(entity.GetReadableName(), entity.GetCreateForm(db)).Render(w)
 	}
 	return func(r chi.Router) {
-		r.Use(withAuthUserIdContext)
+		r.Use(middleware.WithAuthUserIdContext)
 		r.Get("/", getAllPage)
 		r.Get("/create", getCreatePage)
 		r.Route("/", func(r chi.Router) {
-			r.Use(withFormEntityContextFactory(entity))
-			r.Use(withEntityValidation)
+			r.Use(middleware.WithFormEntityContextFactory(entity))
+			r.Use(middleware.WithEntityValidation)
 			r.Post("/", create)
 		})
 		r.Route("/{id}", func(r chi.Router) {
-			r.Use(withDbEntityContextFactory(entity, db))
+			r.Use(middleware.WithDbEntityContextFactory(entity, db))
 			r.Get("/", getOnePage)
 			// r.Delete("/", delete)
 		})
@@ -84,7 +89,7 @@ func main() {
 		log.Fatal("F cannot connect to main db: ", err.Error())
 	}
 	var dbs []DatabaseEntity
-	res := main_db.Find(&dbs)
+	res := main_db.Table("databases").Find(&dbs)
 	if res.Error != nil {
 		log.Fatal("F cannot query databases list: ", res.Error.Error())
 	}
@@ -94,21 +99,25 @@ func main() {
 		db = database.GetOldDataDb(main_db, dbs[0])
 	}
 	r := chi.NewRouter()
-	r.Use(withRequestInfoLogging)
+	r.Use(middleware.WithRequestInfoLogging)
+	r.Route("/", func(r chi.Router) {
+		r.Use(middleware.WithAuthUserIdContext)
+		r.Get("/", func(w http.ResponseWriter, r *http.Request) { gui.MainPageComponent().Render(w) })
+	})
 	r.Route("/signup", func(r chi.Router) {
-		r.Use(withFormFieldsValidationFactory([]string{"name", "password", "repeat_password"}))
-		r.Get("/", func(w http.ResponseWriter, r *http.Request) { UserFormComponent(true).Render(w) })
-		r.Post("/", func(w http.ResponseWriter, r *http.Request) { signupPost(w, r, db) })
+		r.Use(middleware.WithFormFieldsValidationFactory([]string{"name", "password", "repeat_password"}))
+		r.Get("/", func(w http.ResponseWriter, r *http.Request) { gui.UserFormComponent(true).Render(w) })
+		r.Post("/", func(w http.ResponseWriter, r *http.Request) { handler.SignupPost(w, r, db) })
 	})
 	r.Route("/login", func(r chi.Router) {
-		r.Use(withFormFieldsValidationFactory([]string{"name", "password"}))
-		r.Get("/", func(w http.ResponseWriter, r *http.Request) { UserFormComponent(false).Render(w) })
-		r.Post("/", func(w http.ResponseWriter, r *http.Request) { loginPost(w, r, db) })
+		r.Use(middleware.WithFormFieldsValidationFactory([]string{"name", "password"}))
+		r.Get("/", func(w http.ResponseWriter, r *http.Request) { gui.UserFormComponent(false).Render(w) })
+		r.Post("/", func(w http.ResponseWriter, r *http.Request) { handler.LoginPost(w, r, db) })
 	})
 	r.Route("/order", EntityRouterFactory(db, &OrderEntity{}))
 	r.Route("/order/{id}/end", func(r chi.Router) {
-		r.Use(withAuthUserIdContext)
-		r.Post("/", func(w http.ResponseWriter, r *http.Request) { endOrder(w, r, db) })
+		r.Use(middleware.WithAuthUserIdContext)
+		r.Post("/", func(w http.ResponseWriter, r *http.Request) { handler.EndOrder(w, r, db) })
 	})
 	r.Route("/resource", EntityRouterFactory(db, &ResourceEntity{}))
 	r.Route("/resource_resupply", EntityRouterFactory(db, &ResourceResupplyEntity{}))

@@ -1,12 +1,12 @@
 package gui
 
 import (
-	"database/sql"
 	"fmt"
 
-	. "github.com/sergeykochiev/curs/backend/types"
+	"github.com/sergeykochiev/curs/backend/types"
 	. "github.com/sergeykochiev/curs/backend/util"
 	. "maragu.dev/gomponents"
+	icons "maragu.dev/gomponents-heroicons/v3/outline"
 	_ "maragu.dev/gomponents/components"
 	. "maragu.dev/gomponents/html"
 )
@@ -18,21 +18,51 @@ func NotFoundPage() Node {
 	)
 }
 
-func EntityListPage[T HtmlEntity](ent T, arr []T) Node {
-	return PageComponent(DataTableComponent(ent, arr), ent.GetReadableName())
+func EntityListPageVerticalLayout[T interface {
+	types.HtmlTemplater
+	types.Identifier
+}](ent T, arr []T) Node {
+	return Div(
+		Class("w-full flex gap-[24px]"),
+		FiltersPanelComponent(ent),
+		DataTableComponent(ent, arr),
+	)
 }
 
-func EntityPage[T HtmlEntity](ent T) Node {
+func EntityListPage[T interface {
+	types.HtmlTemplater
+	types.Identifier
+}](ent T, arr []T) Node {
+	return PageComponent(EntityListPageVerticalLayout(ent, arr), ent.GetReadableName(), ButtonComponent("Создать", A, Href(ent.TableName()+"/create")))
+}
+
+func EntityPage[T interface {
+	types.HtmlTemplater
+	types.Identifier
+}](ent T) Node {
 	return PageComponent(ent.GetEntityPage(true), fmt.Sprintf("%s #%d", ent.GetReadableName(), ent.GetId()))
 }
 
-func PageComponent(content Node, heading string) Node {
+func PageComponent(content Node, heading string, buttons ...Node) Node {
 	return RootComponent(
 		Main(
 			MainWrapperClass(),
+			Div(
+				Class("w-max"),
+				A(
+					Class("transition-all text-[14px] flex items-center after:content-[''] after:transition-all after:w-0 after:z-[-1] text-gray-800 gap-[4px] after:bg-gray-200 after:h-full hover:after:w-full relative after:absolute after:bottom-0 after:left-0"),
+					icons.ArrowLeft(Class("h-4 w-4")),
+					Text("На главную"),
+					Href("/"),
+				),
+			),
 			H1(
-				Class("text-[20px] font-semibold"),
+				Class("text-[20px] flex items-center justify-between font-semibold"),
 				Text(heading),
+				Div(
+					Class("flex gap-[8px] items-center"),
+					Map(buttons, func(b Node) Node { return b }),
+				),
 			),
 			Class("flex flex-col gap-[12px] w-full"),
 			content,
@@ -40,9 +70,12 @@ func PageComponent(content Node, heading string) Node {
 	)
 }
 
-func RelationCardComponent[T HtmlEntity](heading string, ent T) Node {
+func RelationCardComponent[T interface {
+	types.HtmlTemplater
+	types.Identifier
+}](heading string, ent T) Node {
 	return A(
-		Href(fmt.Sprintf("/%s/%d", ent.GetName(), ent.GetId())),
+		Href(fmt.Sprintf("/%s/%d", ent.TableName(), ent.GetId())),
 		Class("transition-all bg-gray-100 flex flex-col gap-[8px] p-[8px] hover:bg-gray-200 outline outline-[1.5px] outline-transparent hover:outline-gray-400"),
 		H2(Text(heading)),
 		ent.GetEntityPage(false),
@@ -68,22 +101,26 @@ func LabelComponent(children Node, label string) Node {
 	)
 }
 
-func InputComponent(t string, ph string, name string, label string, default_value string, required bool) Node {
+func InputComponent(t string, ph string, name string, default_value string, required bool) Node {
+	return Input(
+		Class("px-[12px] w-full py-[6px] text-[16px] font-normal outline-gray-300 focus:outline-gray-400 transition-all hover:bg-gray-200 bg-gray-100 focus:bg-gray-50 outline outline-[1.5px]"),
+		Type(t),
+		Placeholder(ph),
+		Name(name),
+		If(required, Required()),
+		Value(default_value),
+	)
+}
+
+func LabeledInputComponent(t string, ph string, name string, label string, default_value string, required bool) Node {
 	return LabelComponent(
-		Input(
-			Class("px-[12px] w-full py-[6px] text-[16px] font-normal outline-gray-300 focus:outline-gray-400 transition-all hover:bg-gray-200 bg-gray-100 focus:bg-gray-50 outline outline-[1.5px]"),
-			Type(t),
-			Placeholder(ph),
-			Name(name),
-			If(required, Required()),
-			Value(default_value),
-		), label,
+		InputComponent(t, ph, name, default_value, required), label,
 	)
 }
 
 func SelectComponent[T interface {
-	HtmlTemplater
-	Identifier
+	types.HtmlTemplater
+	types.Identifier
 }](arr []T, ph string, getText func(T) string, label string, name string, required bool, id int) Node {
 	return LabelComponent(
 		Select(
@@ -105,22 +142,35 @@ func TailwindScript() Node {
 	)
 }
 
+func FiltersPanelComponent[T interface {
+	types.HtmlTemplater
+	types.Identifier
+}](ent T) Node {
+	return Form(
+		Class("shadow-sm p-[12px] outline-gray-200 outline outline-[1px] flex flex-col gap-[8px]"),
+		H2(Text("Фильтры")),
+		ent.GetFilters(),
+		ButtonComponent("Применить", Button),
+	)
+}
+
 func DataTableComponent[T interface {
-	HtmlTemplater
-	Identifier
+	types.HtmlTemplater
+	types.Identifier
 }](ent T, arr []T) Node {
 	return Div(
-		Class("flex flex-col w-full gap-[8px]"),
+		Class("shadow-sm p-[12px] outline-gray-200 outline flex flex-col max-w-960 w-full gap-[8px]"),
+		H2(Text("Данные")),
 		Div(
-			Class("flex outline-gray-200 outline outline-[1.5px]"),
+			Class("flex outline-gray-200 justify-between items-center outline outline-[1.5px]"),
 			ent.GetTableHeader(),
 		),
 		If(len(arr) > 0, Div(
 			Class("flex flex-col gap-[2px]"),
 			Map(arr, func(ent T) Node {
 				return A(
-					Href(fmt.Sprintf("/%s/%d", ent.GetName(), ent.GetId())),
-					Class("transition-all bg-gray-100 flex hover:bg-gray-200 outline outline-[1.5px] outline-transparent hover:outline-gray-400"),
+					Href(fmt.Sprintf("/%s/%d", ent.TableName(), ent.GetId())),
+					Class("transition-all bg-gray-100 flex py-[4px] hover:bg-gray-200 outline outline-[1.5px] outline-transparent hover:outline-gray-400"),
 					ent.GetDataRow(),
 				)
 			}),
@@ -164,13 +214,7 @@ func MainPageComponent() Node {
 	return RootComponent(
 		Main(
 			MainWrapperClass(),
-			MainPageSectionComponent("Функции", Group{
-				MainPageButtonComponent("/create_order", "Создать заказ"),
-				MainPageButtonComponent("/create_spending", "Завести трату ресурса"),
-				MainPageButtonComponent("/create_resupply", "Завести поставку ресурса"),
-				MainPageButtonComponent("/create_resource", "Создать новый ресурс"),
-			}),
-			MainPageSectionComponent("Просмотр данных", Group{
+			MainPageSectionComponent("Данные", Group{
 				MainPageButtonComponent("/resource", "Ресурсы на складе"),
 				MainPageButtonComponent("/order", "Заказы"),
 				MainPageButtonComponent("/resource_resupply", "Поставки ресурсов"),
@@ -181,30 +225,14 @@ func MainPageComponent() Node {
 }
 
 func MainWrapperClass() Node {
-	return Class("flex flex-col mt-[30px] max-w-[960px] gap-[16px] grid grid-cols-1 w-full")
+	return Class("flex flex-col mt-[30px] max-w-[1440px] gap-[16px] grid grid-cols-1 w-full")
 }
 
-func DataListPageComponent[T interface {
-	HtmlTemplater
-	Identifier
-}](ent T, arr []T, db *sql.DB) Node {
-	return RootComponent(
-		Main(
-			MainWrapperClass(),
-			H1(
-				Class("text-[20px] font-semibold"),
-				Text(ent.GetReadableName()),
-			),
-			Class("flex flex-col gap-[12px]"),
-			DataTableComponent(ent, arr),
-		),
-	)
-}
-
-func ButtonComponent(text string) Node {
-	return Button(
+func ButtonComponent(text string, as func(children ...Node) Node, children ...Node) Node {
+	return as(
 		Class("self-end px-[16px] py-[6px] font-medium text-[14px] outline-gray-400 bg-gray-100 hover:bg-gray-200 transition-all cursor-pointer active:scale-[0.95] outline-[1.5px]"),
 		Text(text),
+		Map(children, func(c Node) Node { return c }),
 	)
 }
 
@@ -216,14 +244,14 @@ func UserFormComponent(signup bool) Node {
 				Method("post"),
 				Class("flex flex-col gap-[12px]"),
 				H2(Text(ConditionalArg(signup, "Регистрация", "Вход"))),
-				InputComponent("text", "Ivan2000Rus", "name", "Имя пользователя", "", true),
-				InputComponent("password", "Не менее 8-ми символов", "password", "Пароль", "", true),
-				If(signup, InputComponent("password", "Должен совпадать с паролем выше", "repeat_password", "Повторите пароль", "", true)),
+				LabeledInputComponent("text", "Ivan2000Rus", "name", "Имя пользователя", "", true),
+				LabeledInputComponent("password", "Не менее 8-ми символов", "password", "Пароль", "", true),
+				If(signup, LabeledInputComponent("password", "Должен совпадать с паролем выше", "repeat_password", "Повторите пароль", "", true)),
 				A(
 					Href(ConditionalArg(signup, "/login", "/signup")),
 					Text(ConditionalArg(signup, "Есть аккаунт? Войти", "Нет аккаунта? Зарегистрироваться")),
 				),
-				ButtonComponent(ConditionalArg(signup, "Зарегистрироваться", "Войти")),
+				ButtonComponent(ConditionalArg(signup, "Зарегистрироваться", "Войти"), Button),
 			),
 		),
 	)
@@ -241,7 +269,7 @@ func CreateFormComponent(name string, fields Group) Node {
 					Class("text-[20px] font-semibold"),
 				),
 				fields,
-				ButtonComponent("Создать"),
+				ButtonComponent("Создать", Button),
 			),
 		),
 	)

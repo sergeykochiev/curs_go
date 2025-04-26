@@ -18,16 +18,36 @@ type ResourceResupplyEntity struct {
 	Resource_id    int
 	Quantity_added int
 	Date           string
-	_Resource      ResourceEntity
+	ResourceEntity ResourceEntity `gorm:"foreignKey:Resource_id"`
+}
+
+func (e *ResourceResupplyEntity) GetFilters() Group {
+	return Group{
+		DateFilterComponent("Дата в диапазоне", "date"),
+		StringFilterComponent("Название ресурса включает", "resource_name"),
+	}
+}
+
+func (e *ResourceResupplyEntity) GetFilteredDb(filters url.Values, db *gorm.DB) *gorm.DB {
+	if filters.Has("date_lo") && filters.Get("date_lo") != "" {
+		db = db.Where("date > ?", filters.Get("date_lo"))
+	}
+	if filters.Has("date_hi") && filters.Get("date_hi") != "" {
+		db = db.Where("date < ?", filters.Get("date_hi"))
+	}
+	if filters.Has("resource_name") && filters.Get("resource_name") != "" {
+		db = db.Where("ResourceEntity__name LIKE ?", "%"+filters.Get("resource_name")+"%")
+	}
+	return db.Joins("ResourceEntity")
 }
 
 func (e *ResourceResupplyEntity) GetDataRow() Group {
 	return Group{
 		Div(Class("px-[2px] grid place-items-center"), Text(html.EscapeString(fmt.Sprintf("%d", e.ID)))),
-		TableCellComponent(e._Resource.Name),
+		TableCellComponent(e.ResourceEntity.Name),
 		TableCellComponent(fmt.Sprintf("%d", e.Quantity_added)),
 		TableCellComponent(e.Date),
-		TableCellComponent(fmt.Sprintf("%f", e._Resource.Cost_by_one)),
+		TableCellComponent(fmt.Sprintf("%f", e.ResourceEntity.Cost_by_one)),
 	}
 }
 
@@ -46,18 +66,18 @@ func (e ResourceResupplyEntity) GetEntityPage(recursive bool) Group {
 		LabeledFieldComponent("Количество добавлено (единиц)", fmt.Sprintf("%d", e.Quantity_added)),
 		LabeledFieldComponent("Дата поставки", e.Date),
 		If(recursive, Group{
-			RelationCardComponent(fmt.Sprintf("Потрачен ресурс #%d", e.Resource_id), &e._Resource),
+			RelationCardComponent(fmt.Sprintf("Поставлен ресурс #%d", e.Resource_id), &e.ResourceEntity),
 		}),
 	}
 }
 
 func (e ResourceResupplyEntity) GetCreateForm(db *gorm.DB) Group {
 	var res []*ResourceEntity
-	db.Find(&res)
+	db.Table("resource").Find(&res)
 	return Group{
 		SelectComponent(res, "", func(r *ResourceEntity) string { return r.Name }, "Выберите ресурс", "resource_id", true, -1),
-		InputComponent("number", "", "quantity_added", "Кол-во добавлено", "", true),
-		InputComponent("date", "", "date", "Дата поставки", "", true),
+		LabeledInputComponent("number", "", "quantity_added", "Кол-во добавлено", "", true),
+		LabeledInputComponent("date", "", "date", "Дата поставки", "", true),
 	}
 }
 
@@ -73,7 +93,7 @@ func (e *ResourceResupplyEntity) GetId() int {
 	return e.ID
 }
 
-func (e *ResourceResupplyEntity) GetName() string {
+func (e *ResourceResupplyEntity) TableName() string {
 	return "resource_resupply"
 }
 
@@ -95,13 +115,13 @@ func (e *ResourceResupplyEntity) ValidateAndParseForm(form url.Values) bool {
 }
 
 func (e *ResourceResupplyEntity) AfterCreate(tx *gorm.DB) (err error) {
-	e._Resource.ID = e.Resource_id
-	res := tx.First(&e._Resource)
+	e.ResourceEntity.ID = e.Resource_id
+	res := tx.First(&e.ResourceEntity)
 	if res.Error != nil {
 		return res.Error
 	}
-	e._Resource.Quantity += e.Quantity_added
-	res = tx.Updates(&e._Resource)
+	e.ResourceEntity.Quantity += e.Quantity_added
+	res = tx.Updates(&e.ResourceEntity)
 	if res.Error != nil {
 		return res.Error
 	}

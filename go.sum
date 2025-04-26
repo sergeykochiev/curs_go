@@ -16,3 +16,5 @@ gorm.io/gorm v1.25.12 h1:I0u8i2hWQItBq1WfE0o2+WuL9+8L21K9e2HHSTE/0f8=
 gorm.io/gorm v1.25.12/go.mod h1:xh7N7RHfYlNc5EmcI/El95gXusucDrQnHXe0+CgWcLQ=
 maragu.dev/gomponents v1.0.0 h1:eeLScjq4PqP1l+r5z/GC+xXZhLHXa6RWUWGW7gSfLh4=
 maragu.dev/gomponents v1.0.0/go.mod h1:oEDahza2gZoXDoDHhw8jBNgH+3UR5ni7Ur648HORydM=
+maragu.dev/gomponents-heroicons/v3 v3.0.0 h1:QBw4CSST12mrdcYzl1XrEnbMxfhvQgnVunhFgQ4RPyI=
+maragu.dev/gomponents-heroicons/v3 v3.0.0/go.mod h1:Rqc5BhSQUHBnGuWEPihg+IsQnOkiBY+Ibu1DDGEarsY=

@@ -20,15 +20,39 @@ type ResourceSpendingEntity struct {
 	Resource_id    int
 	Quantity_spent int
 	Date           string
-	_Order         OrderEntity
-	_Resource      ResourceEntity
+	OrderEntity    OrderEntity    `gorm:"foreignKey:Order_id"`
+	ResourceEntity ResourceEntity `gorm:"foreignKey:Resource_id"`
+}
+
+func (e *ResourceSpendingEntity) GetFilters() Group {
+	return Group{
+		DateFilterComponent("Дата в диапазоне", "date"),
+		StringFilterComponent("Название заказа включает", "order_name"),
+		StringFilterComponent("Название ресурса включает", "resource_name"),
+	}
+}
+
+func (e *ResourceSpendingEntity) GetFilteredDb(filters url.Values, db *gorm.DB) *gorm.DB {
+	if filters.Has("date_lo") && filters.Get("date_lo") != "" {
+		db = db.Where("date > ?", filters.Get("date_lo"))
+	}
+	if filters.Has("date_hi") && filters.Get("date_hi") != "" {
+		db = db.Where("date < ?", filters.Get("date_hi"))
+	}
+	if filters.Has("order_name") && filters.Get("order_name") != "" {
+		db = db.Joins("OrderEntity").Where("OrderEntity__name LIKE ?", "%"+filters.Get("order_name")+"%")
+	}
+	if filters.Has("resource_name") && filters.Get("resource_name") != "" {
+		db = db.Joins("ResourceEntity").Where("ResourceEntity__name LIKE ?", "%"+filters.Get("resource_name")+"%")
+	}
+	return db.Joins("ResourceEntity").Joins("OrderEntity")
 }
 
 func (e *ResourceSpendingEntity) GetDataRow() Group {
 	return Group{
 		Div(Class("px-[2px] grid place-items-center"), Text(html.EscapeString(fmt.Sprintf("%d", e.ID)))),
-		TableCellComponent(e._Order.Name),
-		TableCellComponent(e._Resource.Name),
+		TableCellComponent(e.OrderEntity.Name),
+		TableCellComponent(e.ResourceEntity.Name),
 		TableCellComponent(fmt.Sprintf("%d", e.Quantity_spent)),
 		TableCellComponent(e.Date),
 	}
@@ -49,8 +73,8 @@ func (e ResourceSpendingEntity) GetEntityPage(recursive bool) Group {
 		LabeledFieldComponent("Количество потрачено (единиц)", fmt.Sprintf("%d", e.Quantity_spent)),
 		LabeledFieldComponent("Дата траты", e.Date),
 		If(recursive, Group{
-			RelationCardComponent(fmt.Sprintf("Потрачено на заказ #%d", e.Order_id), &e._Order),
-			RelationCardComponent(fmt.Sprintf("Потрачен ресурс #%d", e.Resource_id), &e._Resource),
+			RelationCardComponent(fmt.Sprintf("Потрачено на заказ #%d", e.Order_id), &e.OrderEntity),
+			RelationCardComponent(fmt.Sprintf("Потрачен ресурс #%d", e.Resource_id), &e.ResourceEntity),
 		}),
 	}
 }
@@ -58,13 +82,13 @@ func (e ResourceSpendingEntity) GetEntityPage(recursive bool) Group {
 func (e ResourceSpendingEntity) GetCreateForm(db *gorm.DB) Group {
 	var ord []*OrderEntity
 	var res []*ResourceEntity
-	db.Find(&ord)
-	db.Find(&res)
+	db.Table("order").Find(&ord)
+	db.Table("resource").Find(&res)
 	return Group{
 		SelectComponent(ord, "", func(r *OrderEntity) string { return r.Name }, "Выберите заказ, на который был потрачен ресурс", "order_id", true, -1),
 		SelectComponent(res, "", func(r *ResourceEntity) string { return r.Name }, "Выберите ресурс", "resource_id", true, -1),
-		InputComponent("number", "", "quantity_spent", "Кол-во потрачено", "", true),
-		InputComponent("date", "", "date", "Дата траты", "", true),
+		LabeledInputComponent("number", "", "quantity_spent", "Кол-во потрачено", "", true),
+		LabeledInputComponent("date", "", "date", "Дата траты", "", true),
 	}
 }
 
@@ -80,7 +104,7 @@ func (e *ResourceSpendingEntity) GetId() int {
 	return e.ID
 }
 
-func (e *ResourceSpendingEntity) GetName() string {
+func (e *ResourceSpendingEntity) TableName() string {
 	return "resource_spending"
 }
 
@@ -106,16 +130,16 @@ func (e *ResourceSpendingEntity) ValidateAndParseForm(form url.Values) bool {
 }
 
 func (e *ResourceSpendingEntity) AfterCreate(tx *gorm.DB) (err error) {
-	e._Resource.ID = e.Resource_id
-	res := tx.First(&e._Resource)
+	e.ResourceEntity.ID = e.Resource_id
+	res := tx.First(&e.ResourceEntity)
 	if res.Error != nil {
 		return res.Error
 	}
-	if e._Resource.Quantity < e.Quantity_spent {
+	if e.ResourceEntity.Quantity < e.Quantity_spent {
 		return errors.New("quantity_spent is more then resource quantity")
 	}
-	e._Resource.Quantity -= e.Quantity_spent
-	res = tx.Updates(&e._Resource)
+	e.ResourceEntity.Quantity -= e.Quantity_spent
+	res = tx.Updates(&e.ResourceEntity)
 	if res.Error != nil {
 		return res.Error
 	}

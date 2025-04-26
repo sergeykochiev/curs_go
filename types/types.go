@@ -7,25 +7,21 @@ import (
 	. "maragu.dev/gomponents"
 )
 
-type CrudEntity interface {
-	Get()
-	GetOne()
-	Insert()
-	Update()
-	Delete()
-}
-
-type HtmlEntity interface {
-	HtmlTemplater
-	Identifier
+type Relator interface {
+	LoadRelations(db *gorm.DB) error
 }
 
 type HtmlTemplater interface {
+	GetFilters() Group
 	GetTableHeader() Group
 	GetDataRow() Group
 	GetReadableName() string
 	GetEntityPage(recursive bool) Group
 	GetCreateForm(db *gorm.DB) Group
+}
+
+type Filterator interface {
+	GetFilteredDb(values url.Values, db *gorm.DB) *gorm.DB
 }
 
 type Validator interface {
@@ -37,6 +33,6 @@ type FormParser interface {
 }
 
 type Identifier interface {
-	GetName() string
+	TableName() string
 	GetId() int
 }
