@@ -50,7 +50,7 @@ func PageComponent(content Node, heading string, buttons ...Node) Node {
 			Div(
 				Class("w-max"),
 				A(
-					Class("transition-all text-[14px] flex items-center after:content-[''] after:transition-all after:w-0 after:z-[-1] text-gray-800 gap-[4px] after:bg-gray-200 after:h-full hover:after:w-full relative after:absolute after:bottom-0 after:left-0"),
+					Class("transition-all text-[14px] flex items-center after:content-[''] after:transition-all after:w-0 after:z-[-1] text-gray-800 gap-[4px] after:bg-gray-2 after:h-full hover:after:w-full relative after:absolute after:bottom-0 after:left-0"),
 					icons.ArrowLeft(Class("h-4 w-4")),
 					Text("На главную"),
 					Href("/"),
