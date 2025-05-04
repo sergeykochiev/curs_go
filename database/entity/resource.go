@@ -18,12 +18,14 @@ type ResourceEntity struct {
 	Name              string
 	Date_last_updated string
 	Cost_by_one       float32
+	One_is_called     string
 	Quantity          int
 }
 
 func (e *ResourceEntity) GetFilters() Group {
 	return Group{
 		StringFilterComponent("Название включает", "name"),
+		StringFilterComponent("Единицей является", "one_is_called"),
 		DateFilterComponent("Дата последнего обновления в диапазоне", "date_last_updated"),
 	}
 }
@@ -38,6 +40,9 @@ func (e *ResourceEntity) GetFilteredDb(filters url.Values, db *gorm.DB) *gorm.DB
 	if filters.Has("name") && filters.Get("name") != "" {
 		db = db.Where("name LIKE ?", "%"+filters.Get("name")+"%")
 	}
+	if filters.Has("one_is_called") && filters.Get("one_is_called") != "" {
+		db = db.Where("one_is_called = ?", filters.Get("one_is_called"))
+	}
 	return db
 }
 
@@ -47,6 +52,7 @@ func (e *ResourceEntity) GetDataRow() Group {
 		TableCellComponent(e.Name),
 		TableCellComponent(e.Date_last_updated),
 		TableCellComponent(fmt.Sprintf("%f", e.Cost_by_one)),
+		TableCellComponent(e.One_is_called),
 		TableCellComponent(fmt.Sprintf("%d", e.Quantity)),
 	}
 }
@@ -57,6 +63,7 @@ func (e *ResourceEntity) GetTableHeader() Group {
 		TableCellComponent("Наименование"),
 		TableCellComponent("Дата обновления"),
 		TableCellComponent("Цена за единицу"),
+		TableCellComponent("Единица"),
 		TableCellComponent("Количество"),
 	}
 }
@@ -66,6 +73,7 @@ func (e ResourceEntity) GetEntityPage(recursive bool) Group {
 		LabeledFieldComponent("Наименование", e.Name),
 		LabeledFieldComponent("Дата обновления", e.Date_last_updated),
 		LabeledFieldComponent("Цена за единицу", fmt.Sprintf("%f", e.Cost_by_one)),
+		LabeledFieldComponent("Единица", e.One_is_called),
 		LabeledFieldComponent("Количество", fmt.Sprintf("%d", e.Quantity)),
 	}
 }
@@ -74,6 +82,7 @@ func (e ResourceEntity) GetCreateForm(db *gorm.DB) Group {
 	return Group{
 		LabeledInputComponent("text", "", "name", "Название", "", true),
 		LabeledInputComponent("text", "", "cost_by_one", "Стоимость за единицу", "", true),
+		LabeledInputComponent("text", `По умолчанию - "Единица"`, "one_is_called", "Единица названа", "", false),
 	}
 }
 
@@ -96,6 +105,9 @@ func (e *ResourceEntity) TableName() string {
 func (e *ResourceEntity) ValidateAndParseForm(form url.Values) bool {
 	if !form.Has("name") || !form.Has("cost_by_one") {
 		return false
+	}
+	if form.Has("one_is_called") {
+		e.One_is_called = form.Get("one_is_called")
 	}
 	e.Name = form.Get("name")
 	cost_by_one, err := strconv.Atoi(form.Get("cost_by_one"))

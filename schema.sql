@@ -4,6 +4,7 @@ CREATE TABLE "order" (
     "client_name" TEXT NOT NULL,
     "client_phone" TEXT NOT NULL,
     "date_created" TEXT NOT NULL,
+    "company_name" TEXT NULL,
     "creator_id" INTEGER NOT NULL,
     "date_ended" TEXT NULL,
     "ended" INTEGER NOT NULL DEFAULT 0,
@@ -16,6 +17,7 @@ CREATE TABLE "resource" (
     "name" TEXT NOT NULL,
     "date_last_updated" TEXT NOT NULL,
     "cost_by_one" REAL NOT NULL,
+    "one_is_called" TEXT NOT NULL DEFAULT "Единица"
     "quantity" INTEGER NOT NULL,
     PRIMARY KEY ("id" AUTOINCREMENT),
     UNIQUE ("name", "cost_by_one")

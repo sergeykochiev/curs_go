@@ -20,6 +20,7 @@ type OrderEntity struct {
 	Name         string
 	Client_name  string
 	Client_phone string
+	Company_name sql.NullString
 	Date_created string
 	Date_ended   sql.NullString
 	Ended        int
@@ -33,6 +34,7 @@ func (e *OrderEntity) GetFilters() Group {
 		BoolFilterComponent("Закончен?", "ended"),
 		DateFilterComponent("Дата завершения в диапазоне", "date_ended"),
 		StringFilterComponent("Название включает", "name"),
+		StringFilterComponent("Название компании включает", "company_name"),
 		StringFilterComponent("Имя клиента включает", "client_name"),
 		StringFilterComponent("Телефон клиента", "client_phone"),
 	}
@@ -57,6 +59,9 @@ func (e *OrderEntity) GetFilteredDb(filters url.Values, db *gorm.DB) *gorm.DB {
 	if filters.Has("name") && filters.Get("name") != "" {
 		db = db.Where("name LIKE ?", "%"+filters.Get("name")+"%")
 	}
+	if filters.Has("company_name") && filters.Get("company_name") != "" {
+		db = db.Where("company_name LIKE ?", "%"+filters.Get("company_name")+"%")
+	}
 	if filters.Has("client_phone") && filters.Get("client_phone") != "" {
 		db = db.Where("client_phone = ?", filters.Get("client_phone"))
 	}
@@ -72,6 +77,7 @@ func (e OrderEntity) GetDataRow() Group {
 		TableCellComponent(e.Name),
 		TableCellComponent(e.Client_name),
 		TableCellComponent(e.Client_phone),
+		TableCellComponent(e.Company_name.String),
 		TableCellComponent(e.Date_created),
 		TableCellComponent(ConditionalArg(e.Ended == 1, "Да", "Нет")),
 		TableCellComponent(e.Date_ended.String),
@@ -85,6 +91,7 @@ func (e OrderEntity) GetTableHeader() Group {
 		TableCellComponent("Название"),
 		TableCellComponent("Имя клиента"),
 		TableCellComponent("Телефон клиента"),
+		TableCellComponent("Компания клиента"),
 		TableCellComponent("Дата создания"),
 		TableCellComponent("Завершен"),
 		TableCellComponent("Дата завершения"),
@@ -97,6 +104,7 @@ func (e OrderEntity) GetEntityPage(recursive bool) Group {
 		LabeledFieldComponent("Название", e.Name),
 		LabeledFieldComponent("Имя клиента", e.Client_name),
 		LabeledFieldComponent("Телефон клиента", e.Client_phone),
+		LabeledFieldComponent("Компания клиента", ConditionalArg(e.Company_name.Valid, e.Company_name.String, "-")),
 		LabeledFieldComponent("Дата создания", e.Date_created),
 		LabeledFieldComponent("Завершен", ConditionalArg(e.Ended == 1, "ДА", "НЕТ")),
 		LabeledFieldComponent("Дата завершения", ConditionalArg(e.Date_ended.Valid, e.Date_ended.String, "-")),
@@ -113,6 +121,7 @@ func (e OrderEntity) GetCreateForm(db *gorm.DB) Group {
 		LabeledInputComponent("text", "", "name", "Название заказа", "", true),
 		LabeledInputComponent("text", "", "client_name", "Имя клиента", "", true),
 		LabeledInputComponent("number", "", "client_phone", "Телефон клиента", "", true),
+		LabeledInputComponent("number", "", "company_name", "Компания клиента", "", false),
 		LabeledInputComponent("date", "", "date_created", "Дата создания", "", true),
 	}
 }
@@ -136,6 +145,10 @@ func (e *OrderEntity) Validate() bool {
 func (e *OrderEntity) ValidateAndParseForm(form url.Values) bool {
 	if !form.Has("name") || !form.Has("client_name") || !form.Has("client_phone") || !form.Has("date_created") {
 		return false
+	}
+	if form.Has("company_name") {
+		e.Company_name.String = form.Get("company_name")
+		e.Company_name.Valid = true
 	}
 	e.Client_name = form.Get("client_name")
 	e.Client_phone = form.Get("client_phone")

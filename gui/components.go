@@ -93,9 +93,16 @@ func LabeledFieldComponent(label string, value string) Node {
 	)
 }
 
+//	func LabelComponent(children Node, label string) Node {
+//		return Label(
+//			Class("flex flex-col p-[8px] bg-gray-50 gap-[4px] border border-[1px] border-solid border-gray-200 font-medium text-[12px] w-full"),
+//			Text(label),
+//			children,
+//		)
+//	}
 func LabelComponent(children Node, label string) Node {
 	return Label(
-		Class("flex flex-col p-[8px] bg-gray-50 gap-[4px] border border-[1px] border-solid border-gray-200 font-medium text-[12px] w-full"),
+		Class("flex flex-col gap-[4px] font-medium text-[12px] w-full"),
 		Text(label),
 		children,
 	)
@@ -138,7 +145,7 @@ func SelectComponent[T interface {
 
 func TailwindScript() Node {
 	return Script(
-		Src("https://unpkg.com/@tailwindcss/browser@4"),
+		Src("./tailwind.js"),
 	)
 }
 
@@ -147,7 +154,7 @@ func FiltersPanelComponent[T interface {
 	types.Identifier
 }](ent T) Node {
 	return Form(
-		Class("shadow-sm p-[12px] outline-gray-200 outline outline-[1px] flex flex-col gap-[8px]"),
+		Class("shadow-sm p-[12px] outline-gray-200 outline outline-[1px] flex flex-col gap-[12px]"),
 		H2(Text("Фильтры")),
 		ent.GetFilters(),
 		ButtonComponent("Применить", Button),

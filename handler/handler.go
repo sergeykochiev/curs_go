@@ -55,7 +55,7 @@ func SignupPost(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 	}
 	var user entity.UserEntity
 	res := db.Where("name = ?", name).First(&user)
-	if res.Error != nil {
+	if res.Error != nil && res.Error != gorm.ErrRecordNotFound {
 		http.Error(w, res.Error.Error(), http.StatusInternalServerError)
 		return
 	}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"reflect"
 
 	"github.com/go-chi/chi/v5"
@@ -88,6 +89,9 @@ func main() {
 	if err != nil {
 		log.Fatal("F cannot connect to main db: ", err.Error())
 	}
+	if len(os.Args) > 1 && os.Args[1] == "init" {
+		database.InitDb(main_db, "./schema_main.sql")
+	}
 	var dbs []DatabaseEntity
 	res := main_db.Table("databases").Find(&dbs)
 	if res.Error != nil {
@@ -100,19 +104,31 @@ func main() {
 	}
 	r := chi.NewRouter()
 	r.Use(middleware.WithRequestInfoLogging)
+	r.Get("/tailwind.js", func(w http.ResponseWriter, r *http.Request) {
+		data, err := os.ReadFile("./tailwind.js")
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.Write(data)
+	})
 	r.Route("/", func(r chi.Router) {
 		r.Use(middleware.WithAuthUserIdContext)
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) { gui.MainPageComponent().Render(w) })
 	})
 	r.Route("/signup", func(r chi.Router) {
-		r.Use(middleware.WithFormFieldsValidationFactory([]string{"name", "password", "repeat_password"}))
+		r.Route("/", func(r chi.Router) {
+			r.Use(middleware.WithFormFieldsValidationFactory([]string{"name", "password", "repeat_password"}))
+			r.Post("/", func(w http.ResponseWriter, r *http.Request) { handler.SignupPost(w, r, db) })
+		})
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) { gui.UserFormComponent(true).Render(w) })
-		r.Post("/", func(w http.ResponseWriter, r *http.Request) { handler.SignupPost(w, r, db) })
 	})
 	r.Route("/login", func(r chi.Router) {
-		r.Use(middleware.WithFormFieldsValidationFactory([]string{"name", "password"}))
+		r.Route("/", func(r chi.Router) {
+			r.Use(middleware.WithFormFieldsValidationFactory([]string{"name", "password"}))
+			r.Post("/", func(w http.ResponseWriter, r *http.Request) { handler.LoginPost(w, r, db) })
+		})
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) { gui.UserFormComponent(false).Render(w) })
-		r.Post("/", func(w http.ResponseWriter, r *http.Request) { handler.LoginPost(w, r, db) })
 	})
 	r.Route("/order", EntityRouterFactory(db, &OrderEntity{}))
 	r.Route("/order/{id}/end", func(r chi.Router) {
