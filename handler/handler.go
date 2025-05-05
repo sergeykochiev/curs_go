@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	billgen "github.com/sergeykochiev/billgen"
+	billgen "github.com/sergeykochiev/billgen/gen"
 	"github.com/sergeykochiev/curs/backend/database/entity"
 	"github.com/sergeykochiev/curs/backend/util"
 	"gorm.io/gorm"
