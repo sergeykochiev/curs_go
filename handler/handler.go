@@ -4,25 +4,22 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
-	"strconv"
 
-	"github.com/go-chi/chi/v5"
+	billgen "github.com/sergeykochiev/billgen"
 	"github.com/sergeykochiev/curs/backend/database/entity"
+	"github.com/sergeykochiev/curs/backend/util"
 	"gorm.io/gorm"
 )
 
 func EndOrder(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
-	id := chi.URLParam(r, "id")
-	int_id, err := strconv.Atoi(id)
-	if err != nil {
-		http.Error(w, "Invalid formdata", http.StatusBadRequest)
-		return
-	}
+	order := r.Context().Value("entity").(entity.OrderEntity)
 	if !r.Form.Has("date_ended") {
 		http.Error(w, "Invalid formdata", http.StatusBadRequest)
 		return
 	}
-	if res := db.Updates(&entity.OrderEntity{ID: int_id, Date_ended: sql.NullString{String: r.Form.Get("date_ended"), Valid: true}}); res.Error != nil {
+	order.Date_ended = sql.NullString{String: r.Form.Get("date_ended"), Valid: true}
+	order.Ended = 1
+	if res := db.Updates(&order); res.Error != nil {
 		http.Error(w, res.Error.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -44,6 +41,14 @@ func LoginPost(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 	http.SetCookie(w, &cookie)
 	w.Header().Add("Location", "/")
 	w.WriteHeader(http.StatusSeeOther)
+}
+
+func GenerateOrderBill(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
+	date := r.Form.Get("date")
+	client_company := r.Form.Get("client_company")
+	ci := util.GetCompanyInfoFromEnv()
+	bil := r.Context().Value("entity").(entity.OrderEntity).GetBIL()
+	billgen.CreateBillPdf(ci, bil, client_company, date, "")
 }
 
 func SignupPost(w http.ResponseWriter, r *http.Request, db *gorm.DB) {

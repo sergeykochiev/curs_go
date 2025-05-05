@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strconv"
 
+	billgen_types "github.com/sergeykochiev/billgen/types"
 	. "github.com/sergeykochiev/curs/backend/gui"
 	. "github.com/sergeykochiev/curs/backend/util"
 	"gorm.io/gorm"
@@ -26,6 +27,21 @@ type OrderEntity struct {
 	Ended        int
 	Creator_id   int
 	UserEntity   UserEntity `gorm:"foreignKey:Creator_id"`
+}
+
+func (e OrderEntity) GetBIL() billgen_types.BillItemList {
+	return billgen_types.BillItemList{
+		// Bia:        billgen_types.BillItem{
+		// 	Name          ord.Name
+		// 	Cost          ord.
+		// 	Count         int
+		// 	One_is_called string
+		// 	Summ          float32
+		// },
+		// Len:        1,
+		// Summ:    float32,
+		// SummString: string,
+	}
 }
 
 func (e *OrderEntity) GetFilters() Group {

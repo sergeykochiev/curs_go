@@ -8,6 +8,7 @@ import (
 	"reflect"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/joho/godotenv"
 	"github.com/sergeykochiev/curs/backend/database"
 	. "github.com/sergeykochiev/curs/backend/database/entity"
 	"github.com/sergeykochiev/curs/backend/gui"
@@ -84,23 +85,15 @@ func EntityRouterFactory[T interface {
 
 func main() {
 	var err error
-	var main_db, db *gorm.DB
-	main_db, err = database.ConnectDb("main.db")
+	err = godotenv.Load(".company.env")
 	if err != nil {
-		log.Fatal("F cannot connect to main db: ", err.Error())
+		log.Fatal("F failed to load company dotenv: ", err.Error())
 	}
-	if len(os.Args) > 1 && os.Args[1] == "init" {
-		database.InitDb(main_db, "./schema_main.sql")
-	}
-	var dbs []DatabaseEntity
-	res := main_db.Table("databases").Find(&dbs)
-	if res.Error != nil {
-		log.Fatal("F cannot query databases list: ", res.Error.Error())
-	}
-	if len(dbs) == 0 {
-		db = database.CreateNewDataDb(main_db)
-	} else {
-		db = database.GetOldDataDb(main_db, dbs[0])
+	var db *gorm.DB
+	db, err = database.ConnectDb("main.db")
+	if _, err := os.ReadFile("initialized"); err != nil {
+		database.InitDb(db, "schema.sql")
+		os.Create("initialized")
 	}
 	r := chi.NewRouter()
 	r.Use(middleware.WithRequestInfoLogging)
@@ -131,9 +124,14 @@ func main() {
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) { gui.UserFormComponent(false).Render(w) })
 	})
 	r.Route("/order", EntityRouterFactory(db, &OrderEntity{}))
-	r.Route("/order/{id}/end", func(r chi.Router) {
+	r.Route("/order/{id}", func(r chi.Router) {
 		r.Use(middleware.WithAuthUserIdContext)
-		r.Post("/", func(w http.ResponseWriter, r *http.Request) { handler.EndOrder(w, r, db) })
+		r.Use(middleware.WithDbEntityContextFactory(&OrderEntity{}, db))
+		r.Route("/bill", func(r chi.Router) {
+			r.Use(middleware.WithFormFieldsValidationFactory([]string{"date", "client_company"}))
+			r.Get("/bill", func(w http.ResponseWriter, r *http.Request) { handler.GenerateOrderBill(w, r, db) })
+		})
+		r.Post("/end", func(w http.ResponseWriter, r *http.Request) { handler.EndOrder(w, r, db) })
 	})
 	r.Route("/resource", EntityRouterFactory(db, &ResourceEntity{}))
 	r.Route("/resource_resupply", EntityRouterFactory(db, &ResourceResupplyEntity{}))
