@@ -3,6 +3,7 @@ package entity
 import (
 	"fmt"
 	"html"
+	"net/http"
 	"net/url"
 	"strconv"
 
@@ -48,23 +49,23 @@ func (e *ResourceEntity) GetFilteredDb(filters url.Values, db *gorm.DB) *gorm.DB
 
 func (e *ResourceEntity) GetDataRow() Group {
 	return Group{
-		Div(Class("px-[2px] grid place-items-center"), Text(html.EscapeString(fmt.Sprintf("%d", e.ID)))),
-		TableCellComponent(e.Name),
-		TableCellComponent(e.Date_last_updated),
-		TableCellComponent(fmt.Sprintf("%f", e.Cost_by_one)),
-		TableCellComponent(e.One_is_called),
-		TableCellComponent(fmt.Sprintf("%d", e.Quantity)),
+		TableDataComponent(html.EscapeString(fmt.Sprintf("%d", e.ID)), Td, fmt.Sprintf("/resource/%d", e.ID)),
+		TableDataComponent(e.Name, Td, ""),
+		TableDataComponent(e.Date_last_updated, Td, ""),
+		TableDataComponent(fmt.Sprintf("%f", e.Cost_by_one), Td, ""),
+		TableDataComponent(e.One_is_called, Td, ""),
+		TableDataComponent(fmt.Sprintf("%d", e.Quantity), Td, ""),
 	}
 }
 
 func (e *ResourceEntity) GetTableHeader() Group {
 	return Group{
-		Div(Class("px-[2px] grid place-items-center"), Text("ID")),
-		TableCellComponent("Наименование"),
-		TableCellComponent("Дата обновления"),
-		TableCellComponent("Цена за единицу"),
-		TableCellComponent("Единица"),
-		TableCellComponent("Количество"),
+		TableDataComponent("ID", Th, ""),
+		TableDataComponent("Наименование", Th, ""),
+		TableDataComponent("Дата обновления", Th, ""),
+		TableDataComponent("Цена за единицу", Th, ""),
+		TableDataComponent("Единица", Th, ""),
+		TableDataComponent("Количество", Th, ""),
 	}
 }
 
@@ -102,7 +103,8 @@ func (e *ResourceEntity) TableName() string {
 	return "resource"
 }
 
-func (e *ResourceEntity) ValidateAndParseForm(form url.Values) bool {
+func (e *ResourceEntity) ValidateAndParseForm(r *http.Request) bool {
+	form := r.Form
 	if !form.Has("name") || !form.Has("cost_by_one") {
 		return false
 	}

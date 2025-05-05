@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"html"
+	"net/http"
 	"net/url"
 	"strconv"
 
@@ -50,21 +51,21 @@ func (e *ResourceSpendingEntity) GetFilteredDb(filters url.Values, db *gorm.DB) 
 
 func (e *ResourceSpendingEntity) GetDataRow() Group {
 	return Group{
-		Div(Class("px-[2px] grid place-items-center"), Text(html.EscapeString(fmt.Sprintf("%d", e.ID)))),
-		TableCellComponent(e.OrderEntity.Name),
-		TableCellComponent(e.ResourceEntity.Name),
-		TableCellComponent(fmt.Sprintf("%d", e.Quantity_spent)),
-		TableCellComponent(e.Date),
+		TableDataComponent(html.EscapeString(fmt.Sprintf("%d", e.ID)), Td, fmt.Sprintf("/resource_spending/%d", e.ID)),
+		TableDataComponent(e.OrderEntity.Name, Td, ""),
+		TableDataComponent(e.ResourceEntity.Name, Td, ""),
+		TableDataComponent(fmt.Sprintf("%d", e.Quantity_spent), Td, ""),
+		TableDataComponent(e.Date, Td, ""),
 	}
 }
 
 func (e *ResourceSpendingEntity) GetTableHeader() Group {
 	return Group{
-		Div(Class("px-[2px] grid place-items-center"), Text("ID")),
-		TableCellComponent("Название заказа"),
-		TableCellComponent("Наименование ресурса"),
-		TableCellComponent("Количество потрачено (единиц)"),
-		TableCellComponent("Дата траты"),
+		TableDataComponent("ID", Th, ""),
+		TableDataComponent("Название заказа", Th, ""),
+		TableDataComponent("Наименование ресурса", Th, ""),
+		TableDataComponent("Количество потрачено (единиц)", Th, ""),
+		TableDataComponent("Дата траты", Th, ""),
 	}
 }
 
@@ -108,7 +109,8 @@ func (e *ResourceSpendingEntity) TableName() string {
 	return "resource_spending"
 }
 
-func (e *ResourceSpendingEntity) ValidateAndParseForm(form url.Values) bool {
+func (e *ResourceSpendingEntity) ValidateAndParseForm(r *http.Request) bool {
+	form := r.Form
 	if !form.Has("order_id") || !form.Has("resource_id") || !form.Has("quantity_spent") || !form.Has("date") {
 		return false
 	}

@@ -17,7 +17,7 @@ CREATE TABLE "resource" (
     "name" TEXT NOT NULL,
     "date_last_updated" TEXT NOT NULL,
     "cost_by_one" REAL NOT NULL,
-    "one_is_called" TEXT NOT NULL DEFAULT "Единица"
+    "one_is_called" TEXT NOT NULL DEFAULT "Единица",
     "quantity" INTEGER NOT NULL,
     PRIMARY KEY ("id" AUTOINCREMENT),
     UNIQUE ("name", "cost_by_one")

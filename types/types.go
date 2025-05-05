@@ -1,6 +1,7 @@
 package types
 
 import (
+	"net/http"
 	"net/url"
 
 	"gorm.io/gorm"
@@ -29,7 +30,7 @@ type Validator interface {
 }
 
 type FormParser interface {
-	ValidateAndParseForm(form url.Values) bool
+	ValidateAndParseForm(r *http.Request) bool
 }
 
 type Identifier interface {

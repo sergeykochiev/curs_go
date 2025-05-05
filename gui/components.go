@@ -50,7 +50,7 @@ func PageComponent(content Node, heading string, buttons ...Node) Node {
 			Div(
 				Class("w-max"),
 				A(
-					Class("transition-all text-[14px] flex items-center after:content-[''] after:transition-all after:w-0 after:z-[-1] text-gray-800 gap-[4px] after:bg-gray-2 after:h-full hover:after:w-full relative after:absolute after:bottom-0 after:left-0"),
+					Class("transition-all text-[14px] flex items-center after:content-[''] after:transition-all after:w-0 after:z-[-1] text-gray-800 gap-[4px] after:bg-gray-200 after:h-full hover:after:w-full relative after:absolute after:bottom-0 after:left-0"),
 					icons.ArrowLeft(Class("h-4 w-4")),
 					Text("На главную"),
 					Href("/"),
@@ -76,7 +76,7 @@ func RelationCardComponent[T interface {
 }](heading string, ent T) Node {
 	return A(
 		Href(fmt.Sprintf("/%s/%d", ent.TableName(), ent.GetId())),
-		Class("transition-all bg-gray-100 flex flex-col gap-[8px] p-[8px] hover:bg-gray-200 outline outline-[1.5px] outline-transparent hover:outline-gray-400"),
+		Class("transition-all bg-gray-100 flex flex-col gap-[8px] p-[8px] hover:bg-gray-200 outline outline-[1.5px] outline-gray-400"),
 		H2(Text(heading)),
 		ent.GetEntityPage(false),
 	)
@@ -100,6 +100,7 @@ func LabeledFieldComponent(label string, value string) Node {
 //			children,
 //		)
 //	}
+
 func LabelComponent(children Node, label string) Node {
 	return Label(
 		Class("flex flex-col gap-[4px] font-medium text-[12px] w-full"),
@@ -145,7 +146,7 @@ func SelectComponent[T interface {
 
 func TailwindScript() Node {
 	return Script(
-		Src("./tailwind.js"),
+		Src("/tailwind.js"),
 	)
 }
 
@@ -168,20 +169,23 @@ func DataTableComponent[T interface {
 	return Div(
 		Class("shadow-sm p-[12px] outline-gray-200 outline flex flex-col max-w-960 w-full gap-[8px]"),
 		H2(Text("Данные")),
-		Div(
-			Class("flex outline-gray-200 justify-between items-center outline outline-[1.5px]"),
-			ent.GetTableHeader(),
+		Table(
+			Class("border-collapse"),
+			THead(
+				Tr(
+					Class("outline-gray-200 whitespace-nowrap outline *:py-[2px] *:text-center *:border-r *:last:border-none *:border-gray-200"),
+					ent.GetTableHeader(),
+				),
+			),
+			If(len(arr) > 0, TBody(
+				Map(arr, func(ent T) Node {
+					return Tr(
+						Class("transition-all relative bg-gray-100 hover:bg-gray-200 outline outline-gray-400 *:py-[2px] *:text-center"),
+						ent.GetDataRow(),
+					)
+				}),
+			)),
 		),
-		If(len(arr) > 0, Div(
-			Class("flex flex-col gap-[2px]"),
-			Map(arr, func(ent T) Node {
-				return A(
-					Href(fmt.Sprintf("/%s/%d", ent.TableName(), ent.GetId())),
-					Class("transition-all bg-gray-100 flex py-[4px] hover:bg-gray-200 outline outline-[1.5px] outline-transparent hover:outline-gray-400"),
-					ent.GetDataRow(),
-				)
-			}),
-		)),
 	)
 }
 
@@ -282,6 +286,11 @@ func CreateFormComponent(name string, fields Group) Node {
 	)
 }
 
-func TableCellComponent(value string) Node {
-	return Div(Class("whitespace-nowrap w-full grid place-items-center"), Text(value))
+func TableDataComponent(value string, as func(children ...Node) Node, href string) Node {
+	return as(
+		Text(value),
+		If(href != "", A(
+			Href(href),
+			Class("left-0 top-0 absolute w-full h-full z-1 bg-transparent cursor-pointer"),
+		)))
 }

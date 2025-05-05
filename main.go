@@ -25,13 +25,14 @@ func EntityRouterFactory[T interface {
 	types.Identifier
 	types.FormParser
 	types.Filterator
-}](db *gorm.DB, entity T) func(r chi.Router) {
+}](db *gorm.DB, entity T, id_route func(r chi.Router)) func(r chi.Router) {
 	create := func(w http.ResponseWriter, r *http.Request) {
 		res := db.Create(entity)
 		if res.Error != nil {
 			http.Error(w, res.Error.Error(), http.StatusInternalServerError)
 			return
 		}
+		http.Redirect(w, r, "/"+entity.TableName(), http.StatusSeeOther)
 	}
 	// update := func(w http.ResponseWriter, r *http.Request) {
 	// 	res := db.Updates(entity)
@@ -62,18 +63,21 @@ func EntityRouterFactory[T interface {
 		gui.CreateFormComponent(entity.GetReadableName(), entity.GetCreateForm(db)).Render(w)
 	}
 	return func(r chi.Router) {
-		r.Use(middleware.WithAuthUserIdContext)
+		r.Use(middleware.WithAuthUserContext(db))
 		r.Get("/", getAllPage)
-		r.Get("/create", getCreatePage)
-		r.Route("/", func(r chi.Router) {
-			r.Use(middleware.WithFormEntityContextFactory(entity))
-			r.Use(middleware.WithEntityValidation)
-			r.Post("/", create)
+		r.Route("/create", func(r chi.Router) {
+			r.Get("/", getCreatePage)
+			r.Route("/", func(r chi.Router) {
+				r.Use(middleware.WithFormEntityContextFactory(entity))
+				r.Use(middleware.WithEntityValidation)
+				r.Post("/", create)
+			})
 		})
 		r.Route("/{id}", func(r chi.Router) {
 			r.Use(middleware.WithDbEntityContextFactory(entity, db))
 			r.Get("/", getOnePage)
 			// r.Delete("/", delete)
+			r.Route("/", id_route)
 		})
 		// r.Route("/{id}", func(r chi.Router) {
 		// 	r.Use(WithFormEntityContextFactory(entity))
@@ -106,7 +110,7 @@ func main() {
 		w.Write(data)
 	})
 	r.Route("/", func(r chi.Router) {
-		r.Use(middleware.WithAuthUserIdContext)
+		r.Use(middleware.WithAuthUserContext(db))
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) { gui.MainPageComponent().Render(w) })
 	})
 	r.Route("/signup", func(r chi.Router) {
@@ -123,19 +127,16 @@ func main() {
 		})
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) { gui.UserFormComponent(false).Render(w) })
 	})
-	r.Route("/order", EntityRouterFactory(db, &OrderEntity{}))
-	r.Route("/order/{id}", func(r chi.Router) {
-		r.Use(middleware.WithAuthUserIdContext)
-		r.Use(middleware.WithDbEntityContextFactory(&OrderEntity{}, db))
+	r.Route("/order", EntityRouterFactory(db, &OrderEntity{}, func(r chi.Router) {
 		r.Route("/bill", func(r chi.Router) {
 			r.Use(middleware.WithFormFieldsValidationFactory([]string{"date", "client_company"}))
 			r.Get("/bill", func(w http.ResponseWriter, r *http.Request) { handler.GenerateOrderBill(w, r, db) })
 		})
 		r.Post("/end", func(w http.ResponseWriter, r *http.Request) { handler.EndOrder(w, r, db) })
-	})
-	r.Route("/resource", EntityRouterFactory(db, &ResourceEntity{}))
-	r.Route("/resource_resupply", EntityRouterFactory(db, &ResourceResupplyEntity{}))
-	r.Route("/resource_spending", EntityRouterFactory(db, &ResourceSpendingEntity{}))
+	}))
+	r.Route("/resource", EntityRouterFactory(db, &ResourceEntity{}, func(r chi.Router) {}))
+	r.Route("/resource_resupply", EntityRouterFactory(db, &ResourceResupplyEntity{}, func(r chi.Router) {}))
+	r.Route("/resource_spending", EntityRouterFactory(db, &ResourceSpendingEntity{}, func(r chi.Router) {}))
 	fmt.Printf("I Listening on http://%s\n", addr)
 	http.ListenAndServe(addr, r)
 }

@@ -4,8 +4,10 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/sergeykochiev/curs/backend/database/entity"
 	"github.com/sergeykochiev/curs/backend/types"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -18,16 +20,32 @@ func WithRequestInfoLogging(next http.Handler) http.Handler {
 	})
 }
 
-func WithAuthUserIdContext(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if len(r.Cookies()) == 0 || len(r.CookiesNamed("token")) == 0 {
-			w.Header().Add("Location", "/login")
-			w.WriteHeader(http.StatusSeeOther)
-			return
-		}
-		ctx := context.WithValue(r.Context(), "userid", r.CookiesNamed("token")[0].Value)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
+func WithAuthUserContext(db *gorm.DB) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if len(r.Cookies()) == 0 || len(r.CookiesNamed("token")) == 0 {
+				http.Redirect(w, r, "/login", http.StatusSeeOther)
+				return
+			}
+			int_id, err := strconv.Atoi(r.CookiesNamed("token")[0].Value)
+			if err != nil {
+				http.Error(w, "Failed to get userID", 404)
+				return
+			}
+			user := entity.UserEntity{ID: int_id}
+			res := db.First(&user)
+			if res.Error != nil && res.Error != gorm.ErrRecordNotFound {
+				http.Error(w, "Failed to get userID", 404)
+				return
+			} else if res.Error != nil {
+				w.Header().Add("Location", "/login")
+				w.WriteHeader(http.StatusSeeOther)
+				return
+			}
+			ctx := context.WithValue(r.Context(), "user", user)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
 }
 
 func WithDbEntityContextFactory[T interface {
@@ -60,8 +78,7 @@ func WithFormEntityContextFactory(entity types.FormParser) func(next http.Handle
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
-			r.Form.Add("userid", r.Context().Value("userid").(string))
-			if !entity.ValidateAndParseForm(r.Form) {
+			if !entity.ValidateAndParseForm(r) {
 				http.Error(w, "Invalid formdata", http.StatusUnprocessableEntity)
 				return
 			}
@@ -92,7 +109,7 @@ func WithFormFieldsValidationFactory(fields []string) func(next http.Handler) ht
 func WithEntityValidation(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		entity := r.Context().Value("entity")
-		if entity.(types.Validator).Validate() {
+		if !entity.(types.Validator).Validate() {
 			http.Error(w, "Invalid entity", http.StatusUnprocessableEntity)
 			return
 		}

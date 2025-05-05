@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"html"
+	"net/http"
 	"net/url"
-	"strconv"
 
 	billgen_types "github.com/sergeykochiev/billgen/types"
 	. "github.com/sergeykochiev/curs/backend/gui"
@@ -89,29 +89,29 @@ func (e *OrderEntity) GetFilteredDb(filters url.Values, db *gorm.DB) *gorm.DB {
 
 func (e OrderEntity) GetDataRow() Group {
 	return Group{
-		Div(Class("px-[2px] grid place-items-center"), Text(html.EscapeString(fmt.Sprintf("%d", e.ID)))),
-		TableCellComponent(e.Name),
-		TableCellComponent(e.Client_name),
-		TableCellComponent(e.Client_phone),
-		TableCellComponent(e.Company_name.String),
-		TableCellComponent(e.Date_created),
-		TableCellComponent(ConditionalArg(e.Ended == 1, "Да", "Нет")),
-		TableCellComponent(e.Date_ended.String),
-		TableCellComponent(e.UserEntity.Name),
+		TableDataComponent(html.EscapeString(fmt.Sprintf("%d", e.ID)), Td, fmt.Sprintf("/order/%d", e.ID)),
+		TableDataComponent(e.Name, Td, ""),
+		TableDataComponent(e.Client_name, Td, ""),
+		TableDataComponent(e.Client_phone, Td, ""),
+		TableDataComponent(e.Company_name.String, Td, ""),
+		TableDataComponent(e.Date_created, Td, ""),
+		TableDataComponent(ConditionalArg(e.Ended == 1, "Да", "Нет"), Td, ""),
+		TableDataComponent(ConditionalArg(e.Date_ended.Valid, e.Date_ended.String, "-"), Td, ""),
+		TableDataComponent(e.UserEntity.Name, Td, ""),
 	}
 }
 
 func (e OrderEntity) GetTableHeader() Group {
 	return Group{
-		Div(Class("px-[2px] grid place-items-center"), Text("ID")),
-		TableCellComponent("Название"),
-		TableCellComponent("Имя клиента"),
-		TableCellComponent("Телефон клиента"),
-		TableCellComponent("Компания клиента"),
-		TableCellComponent("Дата создания"),
-		TableCellComponent("Завершен"),
-		TableCellComponent("Дата завершения"),
-		TableCellComponent("Создатель"),
+		TableDataComponent("ID", Th, ""),
+		TableDataComponent("Название", Th, ""),
+		TableDataComponent("Имя клиента", Th, ""),
+		TableDataComponent("Телефон клиента", Th, ""),
+		TableDataComponent("Компания клиента", Th, ""),
+		TableDataComponent("Дата создания", Th, ""),
+		TableDataComponent("Завершен", Th, ""),
+		TableDataComponent("Дата завершения", Th, ""),
+		TableDataComponent("Создатель", Th, ""),
 	}
 }
 
@@ -137,7 +137,7 @@ func (e OrderEntity) GetCreateForm(db *gorm.DB) Group {
 		LabeledInputComponent("text", "", "name", "Название заказа", "", true),
 		LabeledInputComponent("text", "", "client_name", "Имя клиента", "", true),
 		LabeledInputComponent("number", "", "client_phone", "Телефон клиента", "", true),
-		LabeledInputComponent("number", "", "company_name", "Компания клиента", "", false),
+		LabeledInputComponent("text", "", "company_name", "Компания клиента", "", false),
 		LabeledInputComponent("date", "", "date_created", "Дата создания", "", true),
 	}
 }
@@ -158,7 +158,8 @@ func (e *OrderEntity) Validate() bool {
 	return len(e.Client_phone) == 11
 }
 
-func (e *OrderEntity) ValidateAndParseForm(form url.Values) bool {
+func (e *OrderEntity) ValidateAndParseForm(r *http.Request) bool {
+	form := r.Form
 	if !form.Has("name") || !form.Has("client_name") || !form.Has("client_phone") || !form.Has("date_created") {
 		return false
 	}
@@ -170,7 +171,6 @@ func (e *OrderEntity) ValidateAndParseForm(form url.Values) bool {
 	e.Client_phone = form.Get("client_phone")
 	e.Name = form.Get("name")
 	e.Date_created = form.Get("date_created")
-	var err error
-	e.Creator_id, err = strconv.Atoi(form.Get("userid"))
-	return err != nil
+	e.Creator_id = r.Context().Value("user").(UserEntity).ID
+	return true
 }
