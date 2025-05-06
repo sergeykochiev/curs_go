@@ -10,7 +10,6 @@ import (
 	"github.com/sergeykochiev/curs/backend/database/entity"
 	"github.com/sergeykochiev/curs/backend/types"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 func WithRequestInfoLogging(next http.Handler) http.Handler {
@@ -50,20 +49,16 @@ func WithAuthUserContext(db *gorm.DB) func(next http.Handler) http.Handler {
 
 func WithDbEntityContextFactory[T interface {
 	types.Identifier
+	types.Preloader
 }](entity T, db *gorm.DB) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			id := chi.URLParam(r, "id")
-			res := db.Preload(clause.Associations).First(&entity, id)
+			res := entity.GetPreloadedDb(db).First(&entity, id)
 			if res.Error != nil {
 				http.Error(w, "ID not found", 404)
 				return
 			}
-			// err := entity.LoadRelations(db)
-			// if err != nil {
-			// 	http.Error(w, "Error loading relations", 404)
-			// 	return
-			// }
 			ctx := context.WithValue(r.Context(), "entity", entity)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

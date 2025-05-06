@@ -36,7 +36,11 @@ type OrderEntity struct {
 
 func (e OrderEntity) GetEntityPageButtons() Group {
 	return Group{
-		ButtonComponent("Сгенерировать накладную", A, Href(fmt.Sprintf("/order/%d/bill", e.ID))),
+		If(e.Ended == 1, Group{
+			ButtonComponent("Создать счет", A, Href(fmt.Sprintf("/order/%d/bill", e.ID))),
+			ButtonComponent("Создать накладную", A, Href(fmt.Sprintf("/order/%d/invoice", e.ID))),
+		}),
+		If(e.Ended == 0, ButtonComponent("Завершить сейчас", A, Href(fmt.Sprintf("/order/%d/end", e.ID)))),
 	}
 }
 
@@ -72,6 +76,10 @@ func (e *OrderEntity) GetFilters() Group {
 	}
 }
 
+func (e *OrderEntity) GetPreloadedDb(db *gorm.DB) *gorm.DB {
+	return db.Joins("UserEntity").Preload("OrderItemFulfillmentEntities.ItemEntity")
+}
+
 func (e *OrderEntity) GetFilteredDb(filters url.Values, db *gorm.DB) *gorm.DB {
 	if filters.Has("date_created_lo") && filters.Get("date_created_lo") != "" {
 		db = db.Where("date_created > ?", filters.Get("date_created_lo"))
@@ -100,7 +108,7 @@ func (e *OrderEntity) GetFilteredDb(filters url.Values, db *gorm.DB) *gorm.DB {
 	if filters.Has("ended") && filters.Get("ended") != "" {
 		db = db.Where("ended = ?", filters.Get("ended"))
 	}
-	return db.Joins("UserEntity")
+	return db
 }
 
 func (e OrderEntity) GetDataRow() Group {

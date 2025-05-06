@@ -87,6 +87,7 @@ func RelationCardArrComponent[T interface {
 	types.Identifier
 }](heading string, arr []T) Node {
 	return MainDataContainerComponent(Div, Group{
+		H2(Text(heading)),
 		If(len(arr) > 0, Map(arr, func(ent T) Node {
 			return RelationCardComponent(ent.GetReadableName(), ent)
 		})),

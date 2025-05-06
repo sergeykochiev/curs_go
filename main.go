@@ -5,10 +5,14 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"reflect"
+	"runtime"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/joho/godotenv"
+	billgen "github.com/sergeykochiev/billgen/gen"
+	billgen_init "github.com/sergeykochiev/billgen/init"
 	"github.com/sergeykochiev/curs/backend/database"
 	. "github.com/sergeykochiev/curs/backend/database/entity"
 	"github.com/sergeykochiev/curs/backend/gui"
@@ -18,6 +22,15 @@ import (
 	"gorm.io/gorm"
 )
 
+// --- idea - https://go.dev/wiki/LockOSThread
+func init() {
+	runtime.LockOSThread()
+}
+
+var main_queue = make(chan func())
+
+//---
+
 const addr = "localhost:3003"
 
 func EntityRouterFactory[T interface {
@@ -25,7 +38,9 @@ func EntityRouterFactory[T interface {
 	types.Identifier
 	types.FormParser
 	types.Filterator
+	types.Preloader
 }](db *gorm.DB, entity T, id_route func(r chi.Router)) func(r chi.Router) {
+	preloadedDb := entity.GetPreloadedDb(db)
 	create := func(w http.ResponseWriter, r *http.Request) {
 		res := db.Create(entity)
 		if res.Error != nil {
@@ -49,7 +64,7 @@ func EntityRouterFactory[T interface {
 	// 	}
 	// }
 	getAllPage := func(w http.ResponseWriter, r *http.Request) {
-		filteredDb := entity.GetFilteredDb(r.URL.Query(), db)
+		filteredDb := entity.GetFilteredDb(r.URL.Query(), preloadedDb)
 		arr := reflect.MakeSlice(reflect.SliceOf(reflect.TypeOf(entity)), 0, 0).Interface()
 		res := filteredDb.Find(&arr)
 		if res.Error != nil {
@@ -90,6 +105,13 @@ func EntityRouterFactory[T interface {
 func main() {
 	var err error
 	err = godotenv.Load(".company.env")
+	if err = billgen_init.Init(); err != nil {
+		log.Fatal("F failed to init wkhtmltopdf from billgen: ", err.Error())
+	}
+	defer billgen_init.Destroy()
+	if err != nil {
+		log.Fatal("F failed to load company dotenv: ", err.Error())
+	}
 	if err != nil {
 		log.Fatal("F failed to load company dotenv: ", err.Error())
 	}
@@ -128,11 +150,16 @@ func main() {
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) { gui.UserFormComponent(false).Render(w) })
 	})
 	r.Route("/order", EntityRouterFactory(db, &OrderEntity{}, func(r chi.Router) {
-		r.Route("/bill", func(r chi.Router) {
-			r.Use(middleware.WithFormFieldsValidationFactory([]string{"date", "client_company"}))
-			r.Post("/bill", func(w http.ResponseWriter, r *http.Request) { handler.GenerateOrderBill(w, r, db) })
+		// r.Route("/bill", func(r chi.Router) {
+		// r.Use(middleware.WithFormFieldsValidationFactory([]string{"date", "client_company"}))
+		// })
+		r.Get("/bill", func(w http.ResponseWriter, r *http.Request) {
+			handler.GenerateOrderBill(w, r, db, billgen.CreateBillPdf, &main_queue)
 		})
-		r.Post("/end", func(w http.ResponseWriter, r *http.Request) { handler.EndOrder(w, r, db) })
+		r.Get("/invoice", func(w http.ResponseWriter, r *http.Request) {
+			handler.GenerateOrderBill(w, r, db, billgen.CreateInvoicePdf, &main_queue)
+		})
+		r.Get("/end", func(w http.ResponseWriter, r *http.Request) { handler.EndOrder(w, r, db) })
 	}))
 	r.Route("/resource", EntityRouterFactory(db, &ResourceEntity{}, func(r chi.Router) {}))
 	r.Route("/resource_resupply", EntityRouterFactory(db, &ResourceResupplyEntity{}, func(r chi.Router) {}))
@@ -140,5 +167,16 @@ func main() {
 	r.Route("/item", EntityRouterFactory(db, &ItemEntity{}, func(r chi.Router) {}))
 	r.Route("/order_item_fulfillment", EntityRouterFactory(db, &OrderItemFulfillmentEntity{}, func(r chi.Router) {}))
 	fmt.Printf("I Listening on http://%s\n", addr)
-	http.ListenAndServe(addr, r)
+	go http.ListenAndServe(addr, r)
+	var quit = make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt)
+	for {
+		select {
+		case f := <-main_queue:
+			f()
+		case <-quit:
+			log.Println("Closing main queue")
+			return
+		}
+	}
 }

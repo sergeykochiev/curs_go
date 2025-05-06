@@ -37,6 +37,10 @@ func (e OrderResourceSpendingEntity) GetFilters() Group {
 	}
 }
 
+func (e *OrderResourceSpendingEntity) GetPreloadedDb(db *gorm.DB) *gorm.DB {
+	return db.Joins("ResourceEntity").Joins("OrderEntity")
+}
+
 func (e *OrderResourceSpendingEntity) GetFilteredDb(filters url.Values, db *gorm.DB) *gorm.DB {
 	if filters.Has("date_lo") && filters.Get("date_lo") != "" {
 		db = db.Where("date > ?", filters.Get("date_lo"))

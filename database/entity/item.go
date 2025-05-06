@@ -34,6 +34,10 @@ func (e *ItemEntity) GetFilters() Group {
 	}
 }
 
+func (e *ItemEntity) GetPreloadedDb(db *gorm.DB) *gorm.DB {
+	return db.Preload("OrderItemFulfillmentEntities.OrderEntity")
+}
+
 func (e *ItemEntity) GetFilteredDb(filters url.Values, db *gorm.DB) *gorm.DB {
 	if filters.Has("name") && filters.Get("name") != "" {
 		db = db.Where("name LIKE ?", "%"+filters.Get("name")+"%")
@@ -74,7 +78,7 @@ func (e ItemEntity) GetEntityPage(recursive bool) Group {
 func (e ItemEntity) GetCreateForm(db *gorm.DB) Group {
 	return Group{
 		LabeledInputComponent("text", "", "name", "Название товара", "", true),
-		LabeledInputComponent("text", "", "cost_by_one", "Стоимость за единицу", "", true),
+		LabeledInputComponent("number", "", "cost_by_one", "Стоимость за единицу", "", true),
 		LabeledInputComponent("text", `По умолчанию - "Единица"`, "one_is_called", "Единица названа", "", false),
 	}
 }

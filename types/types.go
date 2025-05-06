@@ -8,8 +8,8 @@ import (
 	. "maragu.dev/gomponents"
 )
 
-type Relator interface {
-	LoadRelations(db *gorm.DB) error
+type Preloader interface {
+	GetPreloadedDb(db *gorm.DB) *gorm.DB
 }
 
 type HtmlTemplater interface {

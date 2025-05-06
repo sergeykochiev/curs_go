@@ -35,6 +35,10 @@ func (e OrderItemFulfillmentEntity) GetFilters() Group {
 	}
 }
 
+func (e *OrderItemFulfillmentEntity) GetPreloadedDb(db *gorm.DB) *gorm.DB {
+	return db.Joins("OrderEntity").Joins("ItemEntity")
+}
+
 func (e *OrderItemFulfillmentEntity) GetFilteredDb(filters url.Values, db *gorm.DB) *gorm.DB {
 	if filters.Has("date_hi") && filters.Get("date_hi") != "" {
 		db = db.Where("date < ?", filters.Get("date_hi"))
@@ -45,7 +49,7 @@ func (e *OrderItemFulfillmentEntity) GetFilteredDb(filters url.Values, db *gorm.
 	if filters.Has("item_name") && filters.Get("item_name") != "" {
 		db = db.Joins("ItemEntity").Where("ItemEntity__name LIKE ?", "%"+filters.Get("item_name")+"%")
 	}
-	return db.Joins("ItemEntity").Joins("OrderEntity")
+	return db
 }
 
 func (e OrderItemFulfillmentEntity) GetDataRow() Group {

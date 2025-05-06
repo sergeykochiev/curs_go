@@ -38,6 +38,10 @@ func (e *ResourceEntity) GetFilters() Group {
 	}
 }
 
+func (e *ResourceEntity) GetPreloadedDb(db *gorm.DB) *gorm.DB {
+	return db.Joins("ResourceResupplyEntities").Joins("ResourceSpendingEntities")
+}
+
 func (e *ResourceEntity) GetFilteredDb(filters url.Values, db *gorm.DB) *gorm.DB {
 	if filters.Has("date_last_updated_lo") && filters.Get("date_last_updated_lo") != "" {
 		db = db.Where("date_last_updated > ?", filters.Get("date_last_updated_lo"))

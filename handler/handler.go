@@ -1,23 +1,25 @@
 package handler
 
 import (
-	"database/sql"
 	"fmt"
 	"net/http"
+	"time"
 
-	billgen "github.com/sergeykochiev/billgen/gen"
+	billgen_types "github.com/sergeykochiev/billgen/types"
 	"github.com/sergeykochiev/curs/backend/database/entity"
 	"github.com/sergeykochiev/curs/backend/util"
 	"gorm.io/gorm"
 )
 
 func EndOrder(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
-	order := r.Context().Value("entity").(entity.OrderEntity)
-	if !r.Form.Has("date_ended") {
-		http.Error(w, "Invalid formdata", http.StatusBadRequest)
-		return
-	}
-	order.Date_ended = sql.NullString{String: r.Form.Get("date_ended"), Valid: true}
+	order := r.Context().Value("entity").(*entity.OrderEntity)
+	// if !r.Form.Has("date_ended") {
+	// 	http.Error(w, "Invalid formdata", http.StatusBadRequest)
+	// 	return
+	// }
+	// order.Date_ended = sql.NullString{String: r.Form.Get("date_ended"), Valid: true}
+	order.Date_ended.Valid = true
+	order.Date_ended.String = util.GetCurrentTime()
 	order.Ended = 1
 	if res := db.Updates(&order); res.Error != nil {
 		http.Error(w, res.Error.Error(), http.StatusInternalServerError)
@@ -43,12 +45,26 @@ func LoginPost(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 	w.WriteHeader(http.StatusSeeOther)
 }
 
-func GenerateOrderBill(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
-	date := r.Form.Get("date")
-	client_company := r.Form.Get("client_company")
-	ci := util.GetCompanyInfoFromEnv()
-	bil := r.Context().Value("entity").(entity.OrderEntity).GetBIL(db)
-	billgen.CreateBillPdf(ci, bil, client_company, date, "")
+func GenerateOrderBill(w http.ResponseWriter, r *http.Request, db *gorm.DB, tf billgen_types.GenFunc, main_q *chan func()) {
+	ord := r.Context().Value("entity").(*entity.OrderEntity)
+	if ord.Ended != 1 {
+		http.Error(w, "Order is not ended", http.StatusBadRequest)
+		return
+	}
+	datetime_ended, err := time.Parse(time.DateTime, ord.Date_ended.String)
+	if err != nil {
+		http.Error(w, "Failed to parse time", http.StatusBadRequest)
+		return
+	}
+	report_number := "bill_number"
+	date_ended := fmt.Sprintf("%d %s %d", datetime_ended.Day(), util.GetRussianMonthGenitive(int(datetime_ended.Month())), datetime_ended.Year())
+	w.Header().Add("Content-Disposition", fmt.Sprintf(`attachment; filename*=UTF-8''"Счет № %s %s.pdf"`, report_number, ord.Company_name.String))
+	if err = util.RunOnQ(main_q, func() error {
+		return tf(w, util.GetCompanyInfoFromEnv(), ord.GetBIL(db), ord.Company_name.String, report_number, date_ended)
+	}); err != nil {
+		http.Error(w, "Error generating .pdf: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func SignupPost(w http.ResponseWriter, r *http.Request, db *gorm.DB) {

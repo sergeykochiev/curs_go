@@ -34,6 +34,10 @@ func (e ResourceResupplyEntity) GetFilters() Group {
 	}
 }
 
+func (e *ResourceResupplyEntity) GetPreloadedDb(db *gorm.DB) *gorm.DB {
+	return db.Joins("ResourceEntity")
+}
+
 func (e *ResourceResupplyEntity) GetFilteredDb(filters url.Values, db *gorm.DB) *gorm.DB {
 	if filters.Has("date_lo") && filters.Get("date_lo") != "" {
 		db = db.Where("date > ?", filters.Get("date_lo"))
@@ -44,7 +48,7 @@ func (e *ResourceResupplyEntity) GetFilteredDb(filters url.Values, db *gorm.DB) 
 	if filters.Has("resource_name") && filters.Get("resource_name") != "" {
 		db = db.Where("ResourceEntity__name LIKE ?", "%"+filters.Get("resource_name")+"%")
 	}
-	return db.Joins("ResourceEntity")
+	return db
 }
 
 func (e ResourceResupplyEntity) GetDataRow() Group {
