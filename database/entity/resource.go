@@ -15,12 +15,14 @@ import (
 )
 
 type ResourceEntity struct {
-	ID                int
-	Name              string
-	Date_last_updated string
-	Cost_by_one       float32
-	One_is_called     string
-	Quantity          int
+	ID                       int
+	Name                     string
+	Date_last_updated        string
+	Cost_by_one              float32
+	One_is_called            string
+	Quantity                 int
+	ResourceResupplyEntities []ResourceResupplyEntity      `gorm:"foreignKey:Resource_id"`
+	ResourceSpendingEntities []OrderResourceSpendingEntity `gorm:"foreignKey:Resource_id"`
 }
 
 func (e *ResourceEntity) GetFilters() Group {
@@ -76,6 +78,8 @@ func (e ResourceEntity) GetEntityPage(recursive bool) Group {
 		LabeledFieldComponent("Цена за единицу", fmt.Sprintf("%f", e.Cost_by_one)),
 		LabeledFieldComponent("Единица", e.One_is_called),
 		LabeledFieldComponent("Количество", fmt.Sprintf("%d", e.Quantity)),
+		If(recursive, RelationCardArrComponent("Траты", e.ResourceSpendingEntities)),
+		If(recursive, RelationCardArrComponent("Поставки", e.ResourceResupplyEntities)),
 	}
 }
 

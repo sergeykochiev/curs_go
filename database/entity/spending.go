@@ -15,7 +15,7 @@ import (
 	. "maragu.dev/gomponents/html"
 )
 
-type ResourceSpendingEntity struct {
+type OrderResourceSpendingEntity struct {
 	ID             int
 	Order_id       int
 	Resource_id    int
@@ -25,7 +25,7 @@ type ResourceSpendingEntity struct {
 	ResourceEntity ResourceEntity `gorm:"foreignKey:Resource_id"`
 }
 
-func (e *ResourceSpendingEntity) GetFilters() Group {
+func (e OrderResourceSpendingEntity) GetFilters() Group {
 	return Group{
 		DateFilterComponent("Дата в диапазоне", "date"),
 		StringFilterComponent("Название заказа включает", "order_name"),
@@ -33,7 +33,7 @@ func (e *ResourceSpendingEntity) GetFilters() Group {
 	}
 }
 
-func (e *ResourceSpendingEntity) GetFilteredDb(filters url.Values, db *gorm.DB) *gorm.DB {
+func (e *OrderResourceSpendingEntity) GetFilteredDb(filters url.Values, db *gorm.DB) *gorm.DB {
 	if filters.Has("date_lo") && filters.Get("date_lo") != "" {
 		db = db.Where("date > ?", filters.Get("date_lo"))
 	}
@@ -49,7 +49,7 @@ func (e *ResourceSpendingEntity) GetFilteredDb(filters url.Values, db *gorm.DB) 
 	return db.Joins("ResourceEntity").Joins("OrderEntity")
 }
 
-func (e *ResourceSpendingEntity) GetDataRow() Group {
+func (e OrderResourceSpendingEntity) GetDataRow() Group {
 	return Group{
 		TableDataComponent(html.EscapeString(fmt.Sprintf("%d", e.ID)), Td, fmt.Sprintf("/resource_spending/%d", e.ID)),
 		TableDataComponent(e.OrderEntity.Name, Td, ""),
@@ -59,7 +59,7 @@ func (e *ResourceSpendingEntity) GetDataRow() Group {
 	}
 }
 
-func (e *ResourceSpendingEntity) GetTableHeader() Group {
+func (e OrderResourceSpendingEntity) GetTableHeader() Group {
 	return Group{
 		TableDataComponent("ID", Th, ""),
 		TableDataComponent("Название заказа", Th, ""),
@@ -69,7 +69,7 @@ func (e *ResourceSpendingEntity) GetTableHeader() Group {
 	}
 }
 
-func (e ResourceSpendingEntity) GetEntityPage(recursive bool) Group {
+func (e OrderResourceSpendingEntity) GetEntityPage(recursive bool) Group {
 	return Group{
 		LabeledFieldComponent("Количество потрачено (единиц)", fmt.Sprintf("%d", e.Quantity_spent)),
 		LabeledFieldComponent("Дата траты", e.Date),
@@ -80,7 +80,7 @@ func (e ResourceSpendingEntity) GetEntityPage(recursive bool) Group {
 	}
 }
 
-func (e ResourceSpendingEntity) GetCreateForm(db *gorm.DB) Group {
+func (e OrderResourceSpendingEntity) GetCreateForm(db *gorm.DB) Group {
 	var ord []*OrderEntity
 	var res []*ResourceEntity
 	db.Table("order").Find(&ord)
@@ -93,23 +93,23 @@ func (e ResourceSpendingEntity) GetCreateForm(db *gorm.DB) Group {
 	}
 }
 
-func (e *ResourceSpendingEntity) GetReadableName() string {
-	return "Трата ресурса"
+func (e OrderResourceSpendingEntity) GetReadableName() string {
+	return "Трата ресурса на заказ"
 }
 
-func (e *ResourceSpendingEntity) Validate() bool {
+func (e *OrderResourceSpendingEntity) Validate() bool {
 	return true
 }
 
-func (e *ResourceSpendingEntity) GetId() int {
+func (e OrderResourceSpendingEntity) GetId() int {
 	return e.ID
 }
 
-func (e *ResourceSpendingEntity) TableName() string {
-	return "resource_spending"
+func (e OrderResourceSpendingEntity) TableName() string {
+	return "order_resource_spending"
 }
 
-func (e *ResourceSpendingEntity) ValidateAndParseForm(r *http.Request) bool {
+func (e *OrderResourceSpendingEntity) ValidateAndParseForm(r *http.Request) bool {
 	form := r.Form
 	if !form.Has("order_id") || !form.Has("resource_id") || !form.Has("quantity_spent") || !form.Has("date") {
 		return false
@@ -131,7 +131,7 @@ func (e *ResourceSpendingEntity) ValidateAndParseForm(r *http.Request) bool {
 	return true
 }
 
-func (e *ResourceSpendingEntity) AfterCreate(tx *gorm.DB) (err error) {
+func (e *OrderResourceSpendingEntity) AfterCreate(tx *gorm.DB) (err error) {
 	e.ResourceEntity.ID = e.Resource_id
 	res := tx.First(&e.ResourceEntity)
 	if res.Error != nil {

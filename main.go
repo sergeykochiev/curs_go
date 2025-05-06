@@ -136,7 +136,9 @@ func main() {
 	}))
 	r.Route("/resource", EntityRouterFactory(db, &ResourceEntity{}, func(r chi.Router) {}))
 	r.Route("/resource_resupply", EntityRouterFactory(db, &ResourceResupplyEntity{}, func(r chi.Router) {}))
-	r.Route("/resource_spending", EntityRouterFactory(db, &ResourceSpendingEntity{}, func(r chi.Router) {}))
+	r.Route("/resource_spending", EntityRouterFactory(db, &OrderResourceSpendingEntity{}, func(r chi.Router) {}))
+	r.Route("/item", EntityRouterFactory(db, &ItemEntity{}, func(r chi.Router) {}))
+	r.Route("/order_item_fulfillment", EntityRouterFactory(db, &OrderItemFulfillmentEntity{}, func(r chi.Router) {}))
 	fmt.Printf("I Listening on http://%s\n", addr)
 	http.ListenAndServe(addr, r)
 }

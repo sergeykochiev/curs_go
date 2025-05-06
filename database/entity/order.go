@@ -17,16 +17,18 @@ import (
 )
 
 type OrderEntity struct {
-	ID           int
-	Name         string
-	Client_name  string
-	Client_phone string
-	Company_name sql.NullString
-	Date_created string
-	Date_ended   sql.NullString
-	Ended        int
-	Creator_id   int
-	UserEntity   UserEntity `gorm:"foreignKey:Creator_id"`
+	ID                           int
+	Name                         string
+	Client_name                  string
+	Client_phone                 string
+	Company_name                 sql.NullString
+	Date_created                 string
+	Date_ended                   sql.NullString
+	Ended                        int
+	Creator_id                   int
+	UserEntity                   UserEntity                    `gorm:"foreignKey:Creator_id"`
+	OrderItemFulfillmentEntities []OrderItemFulfillmentEntity  `gorm:"foreignKey:Order_id"`
+	ResourceSpendingEntities     []OrderResourceSpendingEntity `gorm:"foreignKey:Order_id"`
 }
 
 func (e OrderEntity) GetBIL() billgen_types.BillItemList {
@@ -129,6 +131,8 @@ func (e OrderEntity) GetEntityPage(recursive bool) Group {
 			H2(Text(fmt.Sprintf("Создал пользователь #%d", e.Creator_id))),
 			LabeledFieldComponent("Имя", e.UserEntity.Name),
 		)),
+		If(recursive, RelationCardArrComponent("Предоставленные товары", e.OrderItemFulfillmentEntities)),
+		If(recursive, RelationCardArrComponent("Потраченные ресурсы", e.ResourceSpendingEntities)),
 	}
 }
 

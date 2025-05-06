@@ -22,7 +22,7 @@ type ResourceResupplyEntity struct {
 	ResourceEntity ResourceEntity `gorm:"foreignKey:Resource_id"`
 }
 
-func (e *ResourceResupplyEntity) GetFilters() Group {
+func (e ResourceResupplyEntity) GetFilters() Group {
 	return Group{
 		DateFilterComponent("Дата в диапазоне", "date"),
 		StringFilterComponent("Название ресурса включает", "resource_name"),
@@ -42,7 +42,7 @@ func (e *ResourceResupplyEntity) GetFilteredDb(filters url.Values, db *gorm.DB) 
 	return db.Joins("ResourceEntity")
 }
 
-func (e *ResourceResupplyEntity) GetDataRow() Group {
+func (e ResourceResupplyEntity) GetDataRow() Group {
 	return Group{
 		TableDataComponent(html.EscapeString(fmt.Sprintf("%d", e.ID)), Td, fmt.Sprintf("/resource_resupply/%d", e.ID)),
 		TableDataComponent(e.ResourceEntity.Name, Td, ""),
@@ -52,13 +52,13 @@ func (e *ResourceResupplyEntity) GetDataRow() Group {
 	}
 }
 
-func (e *ResourceResupplyEntity) GetTableHeader() Group {
+func (e ResourceResupplyEntity) GetTableHeader() Group {
 	return Group{
 		TableDataComponent("ID", Th, ""),
-		TableDataComponent("Ресурс", Th, ""),
-		TableDataComponent("Количество добавлено (единиц)", Th, ""),
-		TableDataComponent("Дата поставки", Th, ""),
-		TableDataComponent("Цена за один", Th, ""),
+		TableDataComponent("Название", Th, ""),
+		TableDataComponent("Цена за единицу", Th, ""),
+		TableDataComponent("Единица", Th, ""),
+		TableDataComponent("Количество", Th, ""),
 	}
 }
 
@@ -82,7 +82,7 @@ func (e ResourceResupplyEntity) GetCreateForm(db *gorm.DB) Group {
 	}
 }
 
-func (e *ResourceResupplyEntity) GetReadableName() string {
+func (e ResourceResupplyEntity) GetReadableName() string {
 	return "Поставка ресурса"
 }
 
@@ -90,11 +90,11 @@ func (e *ResourceResupplyEntity) Validate() bool {
 	return true
 }
 
-func (e *ResourceResupplyEntity) GetId() int {
+func (e ResourceResupplyEntity) GetId() int {
 	return e.ID
 }
 
-func (e *ResourceResupplyEntity) TableName() string {
+func (e ResourceResupplyEntity) TableName() string {
 	return "resource_resupply"
 }
 

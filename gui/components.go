@@ -33,17 +33,17 @@ func EntityListPage[T interface {
 	types.HtmlTemplater
 	types.Identifier
 }](ent T, arr []T) Node {
-	return PageComponent(EntityListPageVerticalLayout(ent, arr), ent.GetReadableName(), ButtonComponent("Создать", A, Href(ent.TableName()+"/create")))
+	return PageComponent(EntityListPageVerticalLayout(ent, arr), ent.GetReadableName(), "На главную", "/", ButtonComponent("Создать", A, Href(ent.TableName()+"/create")))
 }
 
 func EntityPage[T interface {
 	types.HtmlTemplater
 	types.Identifier
 }](ent T) Node {
-	return PageComponent(ent.GetEntityPage(true), fmt.Sprintf("%s #%d", ent.GetReadableName(), ent.GetId()))
+	return PageComponent(ent.GetEntityPage(true), fmt.Sprintf("%s #%d", ent.GetReadableName(), ent.GetId()), "К таблице", "/"+ent.TableName())
 }
 
-func PageComponent(content Node, heading string, buttons ...Node) Node {
+func PageComponent(content Node, heading string, link_text string, link_href string, buttons ...Node) Node {
 	return RootComponent(
 		Main(
 			MainWrapperClass(),
@@ -52,8 +52,8 @@ func PageComponent(content Node, heading string, buttons ...Node) Node {
 				A(
 					Class("transition-all text-[14px] flex items-center after:content-[''] after:transition-all after:w-0 after:z-[-1] text-gray-800 gap-[4px] after:bg-gray-200 after:h-full hover:after:w-full relative after:absolute after:bottom-0 after:left-0"),
 					icons.ArrowLeft(Class("h-4 w-4")),
-					Text("На главную"),
-					Href("/"),
+					Text(link_text),
+					Href(link_href),
 				),
 			),
 			H1(
@@ -80,6 +80,18 @@ func RelationCardComponent[T interface {
 		H2(Text(heading)),
 		ent.GetEntityPage(false),
 	)
+}
+
+func RelationCardArrComponent[T interface {
+	types.HtmlTemplater
+	types.Identifier
+}](heading string, arr []T) Node {
+	return MainDataContainerComponent(Div, Group{
+		If(len(arr) > 0, Map(arr, func(ent T) Node {
+			return RelationCardComponent(ent.GetReadableName(), ent)
+		})),
+		If(len(arr) == 0, Text("No data")),
+	}, true)
 }
 
 func LabeledFieldComponent(label string, value string) Node {
@@ -150,24 +162,29 @@ func TailwindScript() Node {
 	)
 }
 
+func MainDataContainerComponent(as func(...Node) Node, children Group, full_width bool) Node {
+	return as(
+		Class("shadow-sm p-[12px] outline-gray-200 outline outline-[1px] flex flex-col gap-[12px]"+ConditionalArg(full_width, " w-full", "")),
+		children,
+	)
+}
+
 func FiltersPanelComponent[T interface {
 	types.HtmlTemplater
 	types.Identifier
 }](ent T) Node {
-	return Form(
-		Class("shadow-sm p-[12px] outline-gray-200 outline outline-[1px] flex flex-col gap-[12px]"),
+	return MainDataContainerComponent(Form, Group{
 		H2(Text("Фильтры")),
 		ent.GetFilters(),
 		ButtonComponent("Применить", Button),
-	)
+	}, false)
 }
 
 func DataTableComponent[T interface {
 	types.HtmlTemplater
 	types.Identifier
 }](ent T, arr []T) Node {
-	return Div(
-		Class("shadow-sm p-[12px] outline-gray-200 outline flex flex-col max-w-960 w-full gap-[8px]"),
+	return MainDataContainerComponent(Div, Group{
 		H2(Text("Данные")),
 		Table(
 			Class("border-collapse"),
@@ -186,7 +203,7 @@ func DataTableComponent[T interface {
 				}),
 			)),
 		),
-	)
+	}, true)
 }
 
 func RootComponent(children Node) Node {
@@ -229,7 +246,9 @@ func MainPageComponent() Node {
 				MainPageButtonComponent("/resource", "Ресурсы на складе"),
 				MainPageButtonComponent("/order", "Заказы"),
 				MainPageButtonComponent("/resource_resupply", "Поставки ресурсов"),
-				MainPageButtonComponent("/resource_spending", "Траты ресурсов"),
+				MainPageButtonComponent("/resource_spending", "Траты ресурсов на заказ"),
+				MainPageButtonComponent("/item", "Товары"),
+				MainPageButtonComponent("/order_item_fulfillment", "Предоставления товаров в рамках заказа"),
 			}),
 		),
 	)
