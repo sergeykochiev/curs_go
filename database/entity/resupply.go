@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"errors"
 	"fmt"
 	"html"
 	"net/http"
@@ -20,6 +21,10 @@ type ResourceResupplyEntity struct {
 	Quantity_added int
 	Date           string
 	ResourceEntity ResourceEntity `gorm:"foreignKey:Resource_id"`
+}
+
+func (e ResourceResupplyEntity) GetEntityPageButtons() Group {
+	return Group{}
 }
 
 func (e ResourceResupplyEntity) GetFilters() Group {
@@ -98,22 +103,22 @@ func (e ResourceResupplyEntity) TableName() string {
 	return "resource_resupply"
 }
 
-func (e *ResourceResupplyEntity) ValidateAndParseForm(r *http.Request) bool {
+func (e *ResourceResupplyEntity) ValidateAndParseForm(r *http.Request) error {
 	form := r.Form
 	if !form.Has("resource_id") || !form.Has("quantity_added") || !form.Has("date") {
-		return false
+		return errors.New("Invalid fields")
 	}
 	var err error
 	e.Resource_id, err = strconv.Atoi(form.Get("resource_id"))
 	if err != nil {
-		return false
+		return err
 	}
 	e.Quantity_added, err = strconv.Atoi(form.Get("quantity_added"))
 	if err != nil {
-		return false
+		return err
 	}
 	e.Date = form.Get("date")
-	return true
+	return nil
 }
 
 func (e *ResourceResupplyEntity) AfterCreate(tx *gorm.DB) (err error) {

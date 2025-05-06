@@ -130,7 +130,7 @@ func main() {
 	r.Route("/order", EntityRouterFactory(db, &OrderEntity{}, func(r chi.Router) {
 		r.Route("/bill", func(r chi.Router) {
 			r.Use(middleware.WithFormFieldsValidationFactory([]string{"date", "client_company"}))
-			r.Get("/bill", func(w http.ResponseWriter, r *http.Request) { handler.GenerateOrderBill(w, r, db) })
+			r.Post("/bill", func(w http.ResponseWriter, r *http.Request) { handler.GenerateOrderBill(w, r, db) })
 		})
 		r.Post("/end", func(w http.ResponseWriter, r *http.Request) { handler.EndOrder(w, r, db) })
 	}))

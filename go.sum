@@ -1,3 +1,5 @@
+github.com/LeKovr/num2word v0.0.0-20230222121907-fcf7ab10b131 h1:OUxL3egKwz6I6Tl4APTJHWUvnILQmZJM7K+VXoC3s9U=
+github.com/LeKovr/num2word v0.0.0-20230222121907-fcf7ab10b131/go.mod h1:Kp5l4G9eZH0q026olxaFn6B5rDzkfGaQVZba6p+7aUw=
 github.com/go-chi/chi/v5 v5.2.1 h1:KOIHODQj58PmL80G2Eak4WdvUzjSJSm0vG72crDCqb8=
 github.com/go-chi/chi/v5 v5.2.1/go.mod h1:L2yAIGWB3H+phAw1NxKwWM+7eUH/lU8pOMm5hHcoops=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=

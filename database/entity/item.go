@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"errors"
 	"fmt"
 	"html"
 	"net/http"
@@ -20,6 +21,10 @@ type ItemEntity struct {
 	Cost_by_one                  float32
 	One_is_called                string
 	OrderItemFulfillmentEntities []OrderItemFulfillmentEntity `gorm:"foreignKey:Item_id"`
+}
+
+func (e ItemEntity) GetEntityPageButtons() Group {
+	return Group{}
 }
 
 func (e *ItemEntity) GetFilters() Group {
@@ -90,17 +95,17 @@ func (e *ItemEntity) Validate() bool {
 	return true
 }
 
-func (e *ItemEntity) ValidateAndParseForm(r *http.Request) bool {
+func (e *ItemEntity) ValidateAndParseForm(r *http.Request) error {
 	form := r.Form
 	if !form.Has("name") || !form.Has("cost_by_one") || !form.Has("one_is_called") {
-		return false
+		return errors.New("Invalid fields")
 	}
 	e.Name = form.Get("name")
 	e.One_is_called = form.Get("one_is_called")
 	cost_by_one, err := strconv.Atoi(form.Get("cost_by_one"))
 	if err != nil {
-		return false
+		return err
 	}
 	e.Cost_by_one = float32(cost_by_one)
-	return true
+	return nil
 }

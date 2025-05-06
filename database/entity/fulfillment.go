@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"errors"
 	"fmt"
 	"html"
 	"net/http"
@@ -21,6 +22,10 @@ type OrderItemFulfillmentEntity struct {
 	Quantity_fulfilled int
 	OrderEntity        OrderEntity `gorm:"foreignKey:Order_id"`
 	ItemEntity         ItemEntity  `gorm:"foreignKey:Item_id"`
+}
+
+func (e OrderItemFulfillmentEntity) GetEntityPageButtons() Group {
+	return Group{}
 }
 
 func (e OrderItemFulfillmentEntity) GetFilters() Group {
@@ -73,12 +78,12 @@ func (e OrderItemFulfillmentEntity) GetEntityPage(recursive bool) Group {
 
 func (e OrderItemFulfillmentEntity) GetCreateForm(db *gorm.DB) Group {
 	var ord []*OrderEntity
-	var res []*ResourceEntity
-	db.Table("order").Find(&ord)
-	db.Table("resource").Find(&res)
+	var res []*ItemEntity
+	db.Find(&ord)
+	db.Find(&res)
 	return Group{
 		SelectComponent(ord, "", func(r *OrderEntity) string { return r.Name }, "Выберите заказ, в рамках которого предоставлен товар", "order_id", true, -1),
-		SelectComponent(res, "", func(r *ResourceEntity) string { return r.Name }, "Выберите товар", "resource_id", true, -1),
+		SelectComponent(res, "", func(r *ItemEntity) string { return r.Name }, "Выберите товар", "item_id", true, -1),
 		LabeledInputComponent("number", "", "quantity_fulfilled", "Кол-во предоставлено", "", true),
 	}
 }
@@ -99,25 +104,25 @@ func (e OrderItemFulfillmentEntity) TableName() string {
 	return "order_item_fulfillment"
 }
 
-func (e *OrderItemFulfillmentEntity) ValidateAndParseForm(r *http.Request) bool {
+func (e *OrderItemFulfillmentEntity) ValidateAndParseForm(r *http.Request) error {
 	form := r.Form
 	if !form.Has("order_id") || !form.Has("item_id") || !form.Has("quantity_fulfilled") {
-		return false
+		return errors.New("Invalid fields")
 	}
 	var err error
 	e.Order_id, err = strconv.Atoi(form.Get("order_id"))
 	if err != nil {
-		return false
+		return err
 	}
 	e.Item_id, err = strconv.Atoi(form.Get("item_id"))
 	if err != nil {
-		return false
+		return err
 	}
 	e.Quantity_fulfilled, err = strconv.Atoi(form.Get("quantity_fulfilled"))
 	if err != nil {
-		return false
+		return err
 	}
-	return true
+	return nil
 }
 
 // func (e *OrderItemFulfillmentEntity) AfterCreate(tx *gorm.DB) (err error) {

@@ -47,7 +47,7 @@ func GenerateOrderBill(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 	date := r.Form.Get("date")
 	client_company := r.Form.Get("client_company")
 	ci := util.GetCompanyInfoFromEnv()
-	bil := r.Context().Value("entity").(entity.OrderEntity).GetBIL()
+	bil := r.Context().Value("entity").(entity.OrderEntity).GetBIL(db)
 	billgen.CreateBillPdf(ci, bil, client_company, date, "")
 }
 

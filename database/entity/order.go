@@ -2,10 +2,13 @@ package entity
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"html"
 	"net/http"
 	"net/url"
+
+	"github.com/LeKovr/num2word"
 
 	billgen_types "github.com/sergeykochiev/billgen/types"
 	. "github.com/sergeykochiev/curs/backend/gui"
@@ -31,18 +34,29 @@ type OrderEntity struct {
 	ResourceSpendingEntities     []OrderResourceSpendingEntity `gorm:"foreignKey:Order_id"`
 }
 
-func (e OrderEntity) GetBIL() billgen_types.BillItemList {
+func (e OrderEntity) GetEntityPageButtons() Group {
+	return Group{
+		ButtonComponent("Сгенерировать накладную", A, Href(fmt.Sprintf("/order/%d/bill", e.ID))),
+	}
+}
+
+func (e OrderEntity) GetBIL(db *gorm.DB) billgen_types.BillItemList {
+	len := len(e.OrderItemFulfillmentEntities)
+	var bia = make([]billgen_types.BillItem, len)
+	var summ float32
+	for i, item := range e.OrderItemFulfillmentEntities {
+		bia[i].Name = item.ItemEntity.Name
+		bia[i].Cost = item.ItemEntity.Cost_by_one
+		bia[i].Count = item.Quantity_fulfilled
+		bia[i].One_is_called = item.ItemEntity.One_is_called
+		bia[i].Summ = float32(bia[i].Count) * bia[i].Cost
+		summ += bia[i].Summ
+	}
 	return billgen_types.BillItemList{
-		// Bia:        billgen_types.BillItem{
-		// 	Name          ord.Name
-		// 	Cost          ord.
-		// 	Count         int
-		// 	One_is_called string
-		// 	Summ          float32
-		// },
-		// Len:        1,
-		// Summ:    float32,
-		// SummString: string,
+		Bia:        bia,
+		Len:        len,
+		Summ:       summ,
+		SummString: num2word.RuMoney(float64(summ), true),
 	}
 }
 
@@ -162,10 +176,10 @@ func (e *OrderEntity) Validate() bool {
 	return len(e.Client_phone) == 11
 }
 
-func (e *OrderEntity) ValidateAndParseForm(r *http.Request) bool {
+func (e *OrderEntity) ValidateAndParseForm(r *http.Request) error {
 	form := r.Form
 	if !form.Has("name") || !form.Has("client_name") || !form.Has("client_phone") || !form.Has("date_created") {
-		return false
+		return errors.New("Invalid fields")
 	}
 	if form.Has("company_name") {
 		e.Company_name.String = form.Get("company_name")
@@ -176,5 +190,5 @@ func (e *OrderEntity) ValidateAndParseForm(r *http.Request) bool {
 	e.Name = form.Get("name")
 	e.Date_created = form.Get("date_created")
 	e.Creator_id = r.Context().Value("user").(UserEntity).ID
-	return true
+	return nil
 }

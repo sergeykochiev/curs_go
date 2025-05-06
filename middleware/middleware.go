@@ -78,8 +78,8 @@ func WithFormEntityContextFactory(entity types.FormParser) func(next http.Handle
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
-			if !entity.ValidateAndParseForm(r) {
-				http.Error(w, "Invalid formdata", http.StatusUnprocessableEntity)
+			if err = entity.ValidateAndParseForm(r); err != nil {
+				http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 				return
 			}
 			ctx := context.WithValue(r.Context(), "entity", entity)

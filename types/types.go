@@ -19,6 +19,7 @@ type HtmlTemplater interface {
 	GetReadableName() string
 	GetEntityPage(recursive bool) Group
 	GetCreateForm(db *gorm.DB) Group
+	GetEntityPageButtons() Group
 }
 
 type Filterator interface {
@@ -30,7 +31,7 @@ type Validator interface {
 }
 
 type FormParser interface {
-	ValidateAndParseForm(r *http.Request) bool
+	ValidateAndParseForm(r *http.Request) error
 }
 
 type Identifier interface {

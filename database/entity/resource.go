@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"errors"
 	"fmt"
 	"html"
 	"net/http"
@@ -23,6 +24,10 @@ type ResourceEntity struct {
 	Quantity                 int
 	ResourceResupplyEntities []ResourceResupplyEntity      `gorm:"foreignKey:Resource_id"`
 	ResourceSpendingEntities []OrderResourceSpendingEntity `gorm:"foreignKey:Resource_id"`
+}
+
+func (e ResourceEntity) GetEntityPageButtons() Group {
+	return Group{}
 }
 
 func (e *ResourceEntity) GetFilters() Group {
@@ -107,10 +112,10 @@ func (e *ResourceEntity) TableName() string {
 	return "resource"
 }
 
-func (e *ResourceEntity) ValidateAndParseForm(r *http.Request) bool {
+func (e *ResourceEntity) ValidateAndParseForm(r *http.Request) error {
 	form := r.Form
 	if !form.Has("name") || !form.Has("cost_by_one") {
-		return false
+		return errors.New("Invalid fields")
 	}
 	if form.Has("one_is_called") {
 		e.One_is_called = form.Get("one_is_called")
@@ -118,8 +123,8 @@ func (e *ResourceEntity) ValidateAndParseForm(r *http.Request) bool {
 	e.Name = form.Get("name")
 	cost_by_one, err := strconv.Atoi(form.Get("cost_by_one"))
 	if err != nil {
-		return false
+		return err
 	}
 	e.Cost_by_one = float32(cost_by_one)
-	return true
+	return nil
 }

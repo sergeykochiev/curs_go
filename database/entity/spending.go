@@ -25,6 +25,10 @@ type OrderResourceSpendingEntity struct {
 	ResourceEntity ResourceEntity `gorm:"foreignKey:Resource_id"`
 }
 
+func (e OrderResourceSpendingEntity) GetEntityPageButtons() Group {
+	return Group{}
+}
+
 func (e OrderResourceSpendingEntity) GetFilters() Group {
 	return Group{
 		DateFilterComponent("Дата в диапазоне", "date"),
@@ -109,26 +113,26 @@ func (e OrderResourceSpendingEntity) TableName() string {
 	return "order_resource_spending"
 }
 
-func (e *OrderResourceSpendingEntity) ValidateAndParseForm(r *http.Request) bool {
+func (e *OrderResourceSpendingEntity) ValidateAndParseForm(r *http.Request) error {
 	form := r.Form
 	if !form.Has("order_id") || !form.Has("resource_id") || !form.Has("quantity_spent") || !form.Has("date") {
-		return false
+		return errors.New("Invalid fields")
 	}
 	var err error
 	e.Order_id, err = strconv.Atoi(form.Get("order_id"))
 	if err != nil {
-		return false
+		return err
 	}
 	e.Resource_id, err = strconv.Atoi(form.Get("resource_id"))
 	if err != nil {
-		return false
+		return err
 	}
 	e.Quantity_spent, err = strconv.Atoi(form.Get("quantity_spent"))
 	if err != nil {
-		return false
+		return err
 	}
 	e.Date = form.Get("date")
-	return true
+	return nil
 }
 
 func (e *OrderResourceSpendingEntity) AfterCreate(tx *gorm.DB) (err error) {

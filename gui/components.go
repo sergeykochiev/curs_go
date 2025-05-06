@@ -40,7 +40,7 @@ func EntityPage[T interface {
 	types.HtmlTemplater
 	types.Identifier
 }](ent T) Node {
-	return PageComponent(ent.GetEntityPage(true), fmt.Sprintf("%s #%d", ent.GetReadableName(), ent.GetId()), "К таблице", "/"+ent.TableName())
+	return PageComponent(ent.GetEntityPage(true), fmt.Sprintf("%s #%d", ent.GetReadableName(), ent.GetId()), "К таблице", "/"+ent.TableName(), ent.GetEntityPageButtons())
 }
 
 func PageComponent(content Node, heading string, link_text string, link_href string, buttons ...Node) Node {
