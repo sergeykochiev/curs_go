@@ -51,7 +51,7 @@ func (e OrderEntity) GetBIL(db *gorm.DB) billgen_types.BillItemList {
 	for i, item := range e.OrderItemFulfillmentEntities {
 		bia[i].Name = item.ItemEntity.Name
 		bia[i].Cost = item.ItemEntity.Cost_by_one
-		bia[i].Count = item.Quantity_fulfilled
+		bia[i].Count = int(item.Quantity_fulfilled)
 		bia[i].One_is_called = item.ItemEntity.One_is_called
 		bia[i].Summ = float32(bia[i].Count) * bia[i].Cost
 		summ += bia[i].Summ

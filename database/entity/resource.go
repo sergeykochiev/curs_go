@@ -21,7 +21,7 @@ type ResourceEntity struct {
 	Date_last_updated        string
 	Cost_by_one              float32
 	One_is_called            string
-	Quantity                 int
+	Quantity                 float32
 	ResourceResupplyEntities []ResourceResupplyEntity      `gorm:"foreignKey:Resource_id"`
 	ResourceSpendingEntities []OrderResourceSpendingEntity `gorm:"foreignKey:Resource_id"`
 }
@@ -65,7 +65,7 @@ func (e *ResourceEntity) GetDataRow() Group {
 		TableDataComponent(e.Date_last_updated, Td, ""),
 		TableDataComponent(fmt.Sprintf("%f", e.Cost_by_one), Td, ""),
 		TableDataComponent(e.One_is_called, Td, ""),
-		TableDataComponent(fmt.Sprintf("%d", e.Quantity), Td, ""),
+		TableDataComponent(fmt.Sprintf("%f", e.Quantity), Td, ""),
 	}
 }
 
@@ -86,7 +86,7 @@ func (e ResourceEntity) GetEntityPage(recursive bool) Group {
 		LabeledFieldComponent("Дата обновления", e.Date_last_updated),
 		LabeledFieldComponent("Цена за единицу", fmt.Sprintf("%f", e.Cost_by_one)),
 		LabeledFieldComponent("Единица", e.One_is_called),
-		LabeledFieldComponent("Количество", fmt.Sprintf("%d", e.Quantity)),
+		LabeledFieldComponent("Количество", fmt.Sprintf("%f", e.Quantity)),
 		If(recursive, RelationCardArrComponent("Траты", e.ResourceSpendingEntities)),
 		If(recursive, RelationCardArrComponent("Поставки", e.ResourceResupplyEntities)),
 	}
@@ -125,10 +125,15 @@ func (e *ResourceEntity) ValidateAndParseForm(r *http.Request) error {
 		e.One_is_called = form.Get("one_is_called")
 	}
 	e.Name = form.Get("name")
-	cost_by_one, err := strconv.Atoi(form.Get("cost_by_one"))
+	cost_by_one, err := strconv.ParseFloat(form.Get("cost_by_one"), 32)
 	if err != nil {
 		return err
 	}
 	e.Cost_by_one = float32(cost_by_one)
+	quantity, err := strconv.ParseFloat(form.Get("quantity"), 32)
+	if err != nil {
+		return err
+	}
+	e.Quantity = float32(quantity)
 	return nil
 }

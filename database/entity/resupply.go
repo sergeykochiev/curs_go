@@ -18,7 +18,7 @@ import (
 type ResourceResupplyEntity struct {
 	ID             int
 	Resource_id    int
-	Quantity_added int
+	Quantity_added float32
 	Date           string
 	ResourceEntity ResourceEntity `gorm:"foreignKey:Resource_id"`
 }
@@ -55,7 +55,7 @@ func (e ResourceResupplyEntity) GetDataRow() Group {
 	return Group{
 		TableDataComponent(html.EscapeString(fmt.Sprintf("%d", e.ID)), Td, fmt.Sprintf("/resource_resupply/%d", e.ID)),
 		TableDataComponent(e.ResourceEntity.Name, Td, ""),
-		TableDataComponent(fmt.Sprintf("%d", e.Quantity_added), Td, ""),
+		TableDataComponent(fmt.Sprintf("%f", e.Quantity_added), Td, ""),
 		TableDataComponent(e.Date, Td, ""),
 		TableDataComponent(fmt.Sprintf("%f", e.ResourceEntity.Cost_by_one), Td, ""),
 	}
@@ -73,7 +73,7 @@ func (e ResourceResupplyEntity) GetTableHeader() Group {
 
 func (e ResourceResupplyEntity) GetEntityPage(recursive bool) Group {
 	return Group{
-		LabeledFieldComponent("Количество добавлено (единиц)", fmt.Sprintf("%d", e.Quantity_added)),
+		LabeledFieldComponent("Количество добавлено (единиц)", fmt.Sprintf("%f", e.Quantity_added)),
 		LabeledFieldComponent("Дата поставки", e.Date),
 		If(recursive, Group{
 			RelationCardComponent(fmt.Sprintf("Поставлен ресурс #%d", e.Resource_id), &e.ResourceEntity),
@@ -117,10 +117,11 @@ func (e *ResourceResupplyEntity) ValidateAndParseForm(r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	e.Quantity_added, err = strconv.Atoi(form.Get("quantity_added"))
+	quantity_added, err := strconv.ParseFloat(form.Get("quantity_added"), 32)
 	if err != nil {
 		return err
 	}
+	e.Quantity_added = float32(quantity_added)
 	e.Date = form.Get("date")
 	return nil
 }

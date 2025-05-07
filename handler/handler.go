@@ -12,19 +12,15 @@ import (
 )
 
 func EndOrder(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
-	order := r.Context().Value("entity").(*entity.OrderEntity)
-	// if !r.Form.Has("date_ended") {
-	// 	http.Error(w, "Invalid formdata", http.StatusBadRequest)
-	// 	return
-	// }
-	// order.Date_ended = sql.NullString{String: r.Form.Get("date_ended"), Valid: true}
-	order.Date_ended.Valid = true
-	order.Date_ended.String = util.GetCurrentTime()
-	order.Ended = 1
-	if res := db.Updates(&order); res.Error != nil {
+	ord := r.Context().Value("entity").(*entity.OrderEntity)
+	ord.Date_ended.Valid = true
+	ord.Date_ended.String = util.GetCurrentTime()
+	ord.Ended = 1
+	if res := db.Updates(&ord); res.Error != nil {
 		http.Error(w, res.Error.Error(), http.StatusInternalServerError)
 		return
 	}
+	http.Redirect(w, r, fmt.Sprintf("/order/%d", ord.ID), http.StatusSeeOther)
 }
 
 func LoginPost(w http.ResponseWriter, r *http.Request, db *gorm.DB) {

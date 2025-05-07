@@ -19,7 +19,7 @@ type OrderItemFulfillmentEntity struct {
 	ID                 int
 	Order_id           int
 	Item_id            int
-	Quantity_fulfilled int
+	Quantity_fulfilled float32
 	OrderEntity        OrderEntity `gorm:"foreignKey:Order_id"`
 	ItemEntity         ItemEntity  `gorm:"foreignKey:Item_id"`
 }
@@ -40,9 +40,6 @@ func (e *OrderItemFulfillmentEntity) GetPreloadedDb(db *gorm.DB) *gorm.DB {
 }
 
 func (e *OrderItemFulfillmentEntity) GetFilteredDb(filters url.Values, db *gorm.DB) *gorm.DB {
-	if filters.Has("date_hi") && filters.Get("date_hi") != "" {
-		db = db.Where("date < ?", filters.Get("date_hi"))
-	}
 	if filters.Has("order_name") && filters.Get("order_name") != "" {
 		db = db.Joins("OrderEntity").Where("OrderEntity__name LIKE ?", "%"+filters.Get("order_name")+"%")
 	}
@@ -57,7 +54,7 @@ func (e OrderItemFulfillmentEntity) GetDataRow() Group {
 		TableDataComponent(html.EscapeString(fmt.Sprintf("%d", e.ID)), Td, fmt.Sprintf("/order_item_fulfillment/%d", e.ID)),
 		TableDataComponent(e.OrderEntity.Name, Td, ""),
 		TableDataComponent(e.ItemEntity.Name, Td, ""),
-		TableDataComponent(fmt.Sprintf("%d", e.Quantity_fulfilled), Td, ""),
+		TableDataComponent(fmt.Sprintf("%f", e.Quantity_fulfilled), Td, ""),
 	}
 }
 
@@ -72,10 +69,10 @@ func (e OrderItemFulfillmentEntity) GetTableHeader() Group {
 
 func (e OrderItemFulfillmentEntity) GetEntityPage(recursive bool) Group {
 	return Group{
-		LabeledFieldComponent("Количество предоставлено (единиц)", fmt.Sprintf("%d", e.Quantity_fulfilled)),
+		LabeledFieldComponent("Количество предоставлено (единиц)", fmt.Sprintf("%f", e.Quantity_fulfilled)),
 		If(recursive, Group{
 			RelationCardComponent(fmt.Sprintf("Предоставлено в рамках заказа #%d", e.Order_id), &e.OrderEntity),
-			RelationCardComponent(fmt.Sprintf("Предоставлен товар #%d (%d шт.)", e.Item_id, e.Quantity_fulfilled), &e.ItemEntity),
+			RelationCardComponent(fmt.Sprintf("Предоставлен товар #%d (%f шт.)", e.Item_id, e.Quantity_fulfilled), &e.ItemEntity),
 		}),
 	}
 }
@@ -122,10 +119,11 @@ func (e *OrderItemFulfillmentEntity) ValidateAndParseForm(r *http.Request) error
 	if err != nil {
 		return err
 	}
-	e.Quantity_fulfilled, err = strconv.Atoi(form.Get("quantity_fulfilled"))
+	quantity_fulfilled, err := strconv.ParseFloat(form.Get("quantity_fulfilled"), 32)
 	if err != nil {
 		return err
 	}
+	e.Quantity_fulfilled = float32(quantity_fulfilled)
 	return nil
 }
 

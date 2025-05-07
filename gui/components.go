@@ -243,6 +243,13 @@ func MainPageComponent() Node {
 	return RootComponent(
 		Main(
 			MainWrapperClass(),
+			Class("group"),
+			Div(
+				Class("flex gap-[4px]"),
+				Label(
+					H1("Обычный режим"),
+				)
+			)
 			MainPageSectionComponent("Данные", Group{
 				MainPageButtonComponent("/resource", "Ресурсы на складе"),
 				MainPageButtonComponent("/order", "Заказы"),

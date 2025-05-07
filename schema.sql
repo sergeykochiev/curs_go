@@ -24,7 +24,7 @@ CREATE TABLE "order_item_fulfillment" (
     "id" INTEGER NOT NULL,
     "order_id" INTEGER NOT NULL,
     "item_id" INTEGER NOT NULL,
-    "quantity_fulfilled" INTEGER NOT NULL,
+    "quantity_fulfilled" REAL NOT NULL,
     PRIMARY KEY ("id" AUTOINCREMENT),
     FOREIGN KEY ("order_id") REFERENCES "order" ("id"),
     FOREIGN KEY ("item_id") REFERENCES "item" ("id"),
@@ -34,12 +34,23 @@ CREATE TABLE "order_item_fulfillment" (
 CREATE TABLE "resource" (
     "id" INTEGER NOT NULL,
     "name" TEXT NOT NULL,
-    "date_last_updated" TEXT NOT NULL,
+    "date_last_updated" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "cost_by_one" REAL NOT NULL,
     "one_is_called" TEXT NOT NULL DEFAULT "Единица",
-    "quantity" INTEGER NOT NULL,
+    "quantity" REAL NOT NULL DEFAULT 0,
     PRIMARY KEY ("id" AUTOINCREMENT),
     UNIQUE ("name", "cost_by_one")
+);
+
+CREATE TABLE "item_resource_need" (
+    "id" INTEGER NOT NULL,
+    "resource_id" INTEGER NOT NULL,
+    "item_id" INTEGER NOT NULL,
+    "quantity_needed" REAL NOT NULL,
+    PRIMARY KEY ("id" AUTOINCREMENT),
+    FOREIGN KEY ("item_id") REFERENCES "item" ("id"),
+    FOREIGN KEY ("resource_id") REFERENCES "resource" ("id"),
+    UNIQUE ("item_id", "resource_id")
 );
 
 CREATE TABLE "resource_resupply" (
@@ -55,7 +66,7 @@ CREATE TABLE "order_resource_spending" (
     "id" INTEGER NOT NULL,
     "order_id" INTEGER NOT NULL,
     "resource_id" INTEGER NOT NULL,
-    "quantity_spent" INTEGER NOT NULL,
+    "quantity_spent" REAL NOT NULL,
     "date" TEXT NOT NULL,
     PRIMARY KEY ("id" AUTOINCREMENT),
     FOREIGN KEY ("order_id") REFERENCES "order" ("id"),

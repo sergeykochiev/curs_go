@@ -19,7 +19,7 @@ type OrderResourceSpendingEntity struct {
 	ID             int
 	Order_id       int
 	Resource_id    int
-	Quantity_spent int
+	Quantity_spent float32
 	Date           string
 	OrderEntity    OrderEntity    `gorm:"foreignKey:Order_id"`
 	ResourceEntity ResourceEntity `gorm:"foreignKey:Resource_id"`
@@ -62,7 +62,7 @@ func (e OrderResourceSpendingEntity) GetDataRow() Group {
 		TableDataComponent(html.EscapeString(fmt.Sprintf("%d", e.ID)), Td, fmt.Sprintf("/resource_spending/%d", e.ID)),
 		TableDataComponent(e.OrderEntity.Name, Td, ""),
 		TableDataComponent(e.ResourceEntity.Name, Td, ""),
-		TableDataComponent(fmt.Sprintf("%d", e.Quantity_spent), Td, ""),
+		TableDataComponent(fmt.Sprintf("%f", e.Quantity_spent), Td, ""),
 		TableDataComponent(e.Date, Td, ""),
 	}
 }
@@ -79,7 +79,7 @@ func (e OrderResourceSpendingEntity) GetTableHeader() Group {
 
 func (e OrderResourceSpendingEntity) GetEntityPage(recursive bool) Group {
 	return Group{
-		LabeledFieldComponent("Количество потрачено (единиц)", fmt.Sprintf("%d", e.Quantity_spent)),
+		LabeledFieldComponent("Количество потрачено (единиц)", fmt.Sprintf("%f", e.Quantity_spent)),
 		LabeledFieldComponent("Дата траты", e.Date),
 		If(recursive, Group{
 			RelationCardComponent(fmt.Sprintf("Потрачено на заказ #%d", e.Order_id), &e.OrderEntity),
@@ -131,10 +131,11 @@ func (e *OrderResourceSpendingEntity) ValidateAndParseForm(r *http.Request) erro
 	if err != nil {
 		return err
 	}
-	e.Quantity_spent, err = strconv.Atoi(form.Get("quantity_spent"))
+	quantity_added, err := strconv.ParseFloat(form.Get("quantity_added"), 32)
 	if err != nil {
 		return err
 	}
+	e.Quantity_spent = float32(quantity_added)
 	e.Date = form.Get("date")
 	return nil
 }
