@@ -99,7 +99,7 @@ func (e ItemResourceNeed) Validate() bool {
 	return true
 }
 
-func (e ItemResourceNeed) GetId() int64 {
+func (e ItemResourceNeed) GetId() (int int64) {
 	return e.Id.IntPart()
 }
 

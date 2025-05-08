@@ -114,7 +114,7 @@ func (e *OrderEntity) GetFilteredDb(filters url.Values, db *gorm.DB) *gorm.DB {
 
 func (e OrderEntity) GetDataRow() Group {
 	return Group{
-		TableDataComponent(html.EscapeString(fmt.Sprintf("%d", e.Id)), Td, fmt.Sprintf("/order/%d", e.GetId())),
+		TableDataComponent(html.EscapeString(fmt.Sprintf("%d", e.GetId())), Td, fmt.Sprintf("/order/%d", e.GetId())),
 		TableDataComponent(e.Name, Td, ""),
 		TableDataComponent(e.Client_name, Td, ""),
 		TableDataComponent(e.Client_phone, Td, ""),
@@ -151,7 +151,7 @@ func (e OrderEntity) GetEntityPage(recursive bool) Group {
 		LabeledFieldComponent("Дата завершения", ConditionalArg(e.Date_ended.Valid, e.Date_ended.String, "-")),
 		If(recursive, Div(
 			Class("bg-gray-100 flex flex-col gap-[8px] p-[8px]"),
-			H2(Text(fmt.Sprintf("Создал пользователь #%d", e.Creator_id))),
+			H2(Text(fmt.Sprintf("Создал пользователь #%d", e.UserEntity.GetId()))),
 			LabeledFieldComponent("Имя", e.UserEntity.Name),
 		)),
 		If(recursive, RelationCardArrComponent("Предоставленные товары", e.OrderItemFulfillmentEntities, func(ent OrderItemFulfillmentEntity) Node {

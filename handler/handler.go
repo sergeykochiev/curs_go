@@ -35,7 +35,7 @@ func LoginPost(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 	}
 	var cookie http.Cookie
 	cookie.Name = "token"
-	cookie.Value = fmt.Sprintf("%d", user.Id)
+	cookie.Value = fmt.Sprintf("%d", user.GetId())
 	http.SetCookie(w, &cookie)
 	w.Header().Add("Location", "/")
 	w.WriteHeader(http.StatusSeeOther)

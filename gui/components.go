@@ -18,6 +18,20 @@ func NotFoundPage() Node {
 	)
 }
 
+func He1(text string) Node {
+	return H1(
+		Class("font-bold text-[24px]"),
+		Text(text),
+	)
+}
+
+func He2(text string) Node {
+	return H2(
+		Class("font-semibold text-[20px]"),
+		Text(text),
+	)
+}
+
 func EntityListPageVerticalLayout[T interface {
 	types.HtmlTemplater
 	types.Identifier
@@ -56,9 +70,9 @@ func PageComponent(content Node, heading string, link_text string, link_href str
 					Href(link_href),
 				),
 			),
-			H1(
-				Class("text-[20px] flex items-center justify-between font-semibold"),
-				Text(heading),
+			Div(
+				Class("flex items-center justify-between font-semibold"),
+				He1(heading),
 				Div(
 					Class("flex gap-[8px] items-center"),
 					Map(buttons, func(b Node) Node { return b }),
@@ -83,7 +97,7 @@ func RelationCardCoreComponent(heading string, href string, children Group) Node
 	return A(
 		Href(href),
 		Class("transition-all bg-gray-100 flex flex-col gap-[8px] p-[8px] hover:bg-gray-200 outline outline-[1.5px] outline-gray-400"),
-		H2(Text(heading)),
+		He2(heading),
 		children,
 	)
 }
@@ -93,11 +107,11 @@ func RelationCardArrComponent[T interface {
 	types.Identifier
 }](heading string, arr []T, f func(ent T) Node) Node {
 	return MainDataContainerComponent(Div, Group{
-		H2(Text(heading)),
+		He2(heading),
 		If(len(arr) > 0, Map(arr, func(ent T) Node {
 			return f(ent)
 		})),
-		If(len(arr) == 0, Text("No data")),
+		If(len(arr) == 0, Div(Class("grid place-items-center w-full"), Text("Нет данных"))),
 	}, true)
 }
 
@@ -181,7 +195,7 @@ func FiltersPanelComponent[T interface {
 	types.Identifier
 }](ent T) Node {
 	return MainDataContainerComponent(Form, Group{
-		H2(Text("Фильтры")),
+		He2("Фильтры"),
 		ent.GetFilters(),
 		ButtonComponent("Применить", Button),
 	}, false)
@@ -192,7 +206,7 @@ func DataTableComponent[T interface {
 	types.Identifier
 }](ent T, arr []T) Node {
 	return MainDataContainerComponent(Div, Group{
-		H2(Text("Данные")),
+		He2("Данные"),
 		Table(
 			Class("border-collapse"),
 			THead(
@@ -231,20 +245,6 @@ func MainPageButtonComponent(href string, text string) Node {
 	)
 }
 
-func MainPageSectionComponent(heading string, children Group) Node {
-	return Section(
-		Class("flex flex-col w-full gap-[6px]"),
-		H2(
-			Text(heading),
-			Class("text-[20px] font-semibold"),
-		),
-		Div(
-			Class("grid grid-cols-2 gap-[8px] w-full"),
-			children,
-		),
-	)
-}
-
 func HeadingNavTabComponent(label string, name string, id string, default_checked bool) Node {
 	return Label(
 		Class("group/tab has-[input:checked]:cursor-default cursor-pointer"),
@@ -272,23 +272,19 @@ func MainPageComponent() Node {
 				HeadingNavTabComponent("Экспертный режим", "input-toggle-mode", "input-toggle-expert", false),
 			),
 			Div(
-				Class("group-has-[input#input-toggle-basic:checked]/panel:hidden"),
-				MainPageSectionComponent("Данные", Group{
-					MainPageButtonComponent("/resource", "Ресурсы на складе"),
-					MainPageButtonComponent("/order", "Заказы"),
-					MainPageButtonComponent("/resource_resupply", "Поставки ресурсов"),
-					MainPageButtonComponent("/resource_spending", "Траты ресурсов на заказ"),
-					MainPageButtonComponent("/item", "Товары"),
-					MainPageButtonComponent("/order_item_fulfillment", "Предоставления товаров в рамках заказа"),
-					MainPageButtonComponent("/item_resource_need", "Необходимость ресурса на товар"),
-				}),
+				Class("group-has-[input#input-toggle-basic:checked]/panel:hidden grid grid-cols-2 gap-[8px] w-full"),
+				MainPageButtonComponent("/resource", "Ресурсы на складе"),
+				MainPageButtonComponent("/order", "Заказы"),
+				MainPageButtonComponent("/resource_resupply", "Поставки ресурсов"),
+				MainPageButtonComponent("/resource_spending", "Траты ресурсов на заказ"),
+				MainPageButtonComponent("/item", "Товары"),
+				MainPageButtonComponent("/order_item_fulfillment", "Предоставления товаров в рамках заказа"),
+				MainPageButtonComponent("/item_resource_need", "Необходимость ресурса на товар"),
 			),
 			Div(
-				Class("group-has-[input#input-toggle-expert:checked]/panel:hidden"),
-				MainPageSectionComponent("Данные", Group{
-					MainPageButtonComponent("/resource_resupply/create", "Добавить поставку ресурса"),
-					MainPageButtonComponent("/order", "Посмотреть заказы"),
-				}),
+				Class("group-has-[input#input-toggle-expert:checked]/panel:hidden grid grid-cols-2 gap-[8px] w-full"),
+				MainPageButtonComponent("/resource_resupply/create", "Добавить поставку ресурса"),
+				MainPageButtonComponent("/order", "Посмотреть заказы"),
 			),
 		),
 	)
@@ -313,7 +309,7 @@ func UserFormComponent(signup bool) Node {
 			Form(
 				Method("post"),
 				Class("flex flex-col gap-[12px]"),
-				H2(Text(ConditionalArg(signup, "Регистрация", "Вход"))),
+				He1(ConditionalArg(signup, "Регистрация", "Вход")),
 				LabeledInputComponent("text", "Ivan2000Rus", "name", "Имя пользователя", "", true),
 				LabeledInputComponent("password", "Не менее 8-ми символов", "password", "Пароль", "", true),
 				If(signup, LabeledInputComponent("password", "Должен совпадать с паролем выше", "repeat_password", "Повторите пароль", "", true)),
@@ -334,10 +330,7 @@ func CreateFormComponent(name string, fields Group) Node {
 			Form(
 				Method("post"),
 				Class("flex flex-col gap-[12px]"),
-				H2(
-					Text(fmt.Sprintf("Создать %s", name)),
-					Class("text-[20px] font-semibold"),
-				),
+				He2(fmt.Sprintf("Создать %s", name)),
 				fields,
 				ButtonComponent("Создать", Button),
 			),
