@@ -46,7 +46,7 @@ func EntityPage[T interface {
 func PageComponent(content Node, heading string, link_text string, link_href string, buttons ...Node) Node {
 	return RootComponent(
 		Main(
-			MainWrapperClass(),
+			MainWrapperClass(""),
 			Div(
 				Class("w-max"),
 				A(
@@ -239,31 +239,57 @@ func MainPageSectionComponent(heading string, children Group) Node {
 	)
 }
 
-func MainPageComponent() Node {
-	return RootComponent(
-		Main(
-			MainWrapperClass(),
-			Class("group"),
-			Div(
-				Class("flex gap-[4px]"),
-				Label(
-					H1("Обычный режим"),
-				)
-			)
-			MainPageSectionComponent("Данные", Group{
-				MainPageButtonComponent("/resource", "Ресурсы на складе"),
-				MainPageButtonComponent("/order", "Заказы"),
-				MainPageButtonComponent("/resource_resupply", "Поставки ресурсов"),
-				MainPageButtonComponent("/resource_spending", "Траты ресурсов на заказ"),
-				MainPageButtonComponent("/item", "Товары"),
-				MainPageButtonComponent("/order_item_fulfillment", "Предоставления товаров в рамках заказа"),
-			}),
+func HeadingNavTabComponent(label string, name string, id string, default_checked bool) Node {
+	return Label(
+		Class("group/tab has-[input:checked]:cursor-default cursor-pointer"),
+		H1(
+			Text(label),
+			Class("group-has-[input:checked]/tab:text-gray-800 group-[&:not(:has(input:checked))]:underline text-gray-400 transition-all font-bold text-[24px]"),
+		),
+		Input(
+			Type("radio"),
+			Name(name),
+			ID(id),
+			If(default_checked, Checked()),
+			Class("absolute hidden"),
 		),
 	)
 }
 
-func MainWrapperClass() Node {
-	return Class("flex flex-col mt-[30px] max-w-[1440px] gap-[16px] grid grid-cols-1 w-full")
+func MainPageComponent() Node {
+	return RootComponent(
+		Main(
+			MainWrapperClass("group/panel"),
+			Div(
+				Class("flex gap-[12px]"),
+				HeadingNavTabComponent("Обычный режим", "input-toggle-mode", "input-toggle-basic", true),
+				HeadingNavTabComponent("Экспертный режим", "input-toggle-mode", "input-toggle-expert", false),
+			),
+			Div(
+				Class("group-has-[input#input-toggle-basic:checked]/panel:hidden"),
+				MainPageSectionComponent("Данные", Group{
+					MainPageButtonComponent("/resource", "Ресурсы на складе"),
+					MainPageButtonComponent("/order", "Заказы"),
+					MainPageButtonComponent("/resource_resupply", "Поставки ресурсов"),
+					MainPageButtonComponent("/resource_spending", "Траты ресурсов на заказ"),
+					MainPageButtonComponent("/item", "Товары"),
+					MainPageButtonComponent("/order_item_fulfillment", "Предоставления товаров в рамках заказа"),
+					MainPageButtonComponent("/item_resource_need", "Необходимость ресурса на товар"),
+				}),
+			),
+			Div(
+				Class("group-has-[input#input-toggle-expert:checked]/panel:hidden"),
+				MainPageSectionComponent("Данные", Group{
+					MainPageButtonComponent("/resource_resupply/create", "Добавить поставку ресурса"),
+					MainPageButtonComponent("/order", "Посмотреть заказы"),
+				}),
+			),
+		),
+	)
+}
+
+func MainWrapperClass(class string) Node {
+	return Class("flex flex-col mt-[30px] max-w-[1440px] gap-[16px] grid grid-cols-1 w-full " + class)
 }
 
 func ButtonComponent(text string, as func(children ...Node) Node, children ...Node) Node {
@@ -277,7 +303,7 @@ func ButtonComponent(text string, as func(children ...Node) Node, children ...No
 func UserFormComponent(signup bool) Node {
 	return RootComponent(
 		Main(
-			MainWrapperClass(),
+			MainWrapperClass(""),
 			Form(
 				Method("post"),
 				Class("flex flex-col gap-[12px]"),
@@ -298,7 +324,7 @@ func UserFormComponent(signup bool) Node {
 func CreateFormComponent(name string, fields Group) Node {
 	return RootComponent(
 		Main(
-			MainWrapperClass(),
+			MainWrapperClass(""),
 			Form(
 				Method("post"),
 				Class("flex flex-col gap-[12px]"),

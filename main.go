@@ -116,9 +116,14 @@ func main() {
 		log.Fatal("F failed to load company dotenv: ", err.Error())
 	}
 	var db *gorm.DB
-	db, err = database.ConnectDb("main.db")
+	db, err = database.Connect("main.db")
 	if _, err := os.ReadFile("initialized"); err != nil {
-		database.InitDb(db, "schema.sql")
+		if err = database.ExecuteFile(db, "schema.sql"); err != nil {
+			log.Fatal("F failed to init db: ", err.Error())
+		}
+		if err = database.ExecuteFile(db, "static_data.sql"); err != nil {
+			log.Fatal("F failed to seed db: ", err.Error())
+		}
 		os.Create("initialized")
 	}
 	r := chi.NewRouter()
@@ -166,6 +171,7 @@ func main() {
 	r.Route("/resource_spending", EntityRouterFactory(db, &OrderResourceSpendingEntity{}, func(r chi.Router) {}))
 	r.Route("/item", EntityRouterFactory(db, &ItemEntity{}, func(r chi.Router) {}))
 	r.Route("/order_item_fulfillment", EntityRouterFactory(db, &OrderItemFulfillmentEntity{}, func(r chi.Router) {}))
+	r.Route("/item_resource_need", EntityRouterFactory(db, &ItemResourceNeed{}, func(r chi.Router) {}))
 	fmt.Printf("I Listening on http://%s\n", addr)
 	go http.ListenAndServe(addr, r)
 	var quit = make(chan os.Signal, 1)

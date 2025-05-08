@@ -22,8 +22,8 @@ type ResourceEntity struct {
 	Cost_by_one              float32
 	One_is_called            string
 	Quantity                 float32
-	ResourceResupplyEntities []ResourceResupplyEntity      `gorm:"foreignKey:Resource_id"`
-	ResourceSpendingEntities []OrderResourceSpendingEntity `gorm:"foreignKey:Resource_id"`
+	ResourceResupplyEntities []*ResourceResupplyEntity      `gorm:"foreignKey:Resource_id"`
+	ResourceSpendingEntities []*OrderResourceSpendingEntity `gorm:"foreignKey:Resource_id"`
 }
 
 func (e ResourceEntity) GetEntityPageButtons() Group {
@@ -106,6 +106,10 @@ func (e *ResourceEntity) GetReadableName() string {
 
 func (e *ResourceEntity) GetId() int {
 	return e.ID
+}
+
+func (e *ResourceEntity) SetId(id int) {
+	e.ID = id
 }
 
 func (e *ResourceEntity) Validate() bool {

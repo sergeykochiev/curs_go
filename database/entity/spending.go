@@ -113,6 +113,10 @@ func (e OrderResourceSpendingEntity) GetId() int {
 	return e.ID
 }
 
+func (e *OrderResourceSpendingEntity) SetId(id int) {
+	e.ID = id
+}
+
 func (e OrderResourceSpendingEntity) TableName() string {
 	return "order_resource_spending"
 }

@@ -37,4 +37,5 @@ type FormParser interface {
 type Identifier interface {
 	TableName() string
 	GetId() int
+	SetId(id int)
 }

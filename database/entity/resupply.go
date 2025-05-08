@@ -103,6 +103,10 @@ func (e ResourceResupplyEntity) GetId() int {
 	return e.ID
 }
 
+func (e *ResourceResupplyEntity) SetId(id int) {
+	e.ID = id
+}
+
 func (e ResourceResupplyEntity) TableName() string {
 	return "resource_resupply"
 }

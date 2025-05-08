@@ -20,7 +20,7 @@ type ItemEntity struct {
 	Name                         string
 	Cost_by_one                  float32
 	One_is_called                string
-	OrderItemFulfillmentEntities []OrderItemFulfillmentEntity `gorm:"foreignKey:Item_id"`
+	OrderItemFulfillmentEntities []*OrderItemFulfillmentEntity `gorm:"foreignKey:Item_id"`
 }
 
 func (e ItemEntity) GetEntityPageButtons() Group {
@@ -89,6 +89,10 @@ func (e ItemEntity) GetReadableName() string {
 
 func (e ItemEntity) GetId() int {
 	return e.ID
+}
+
+func (e *ItemEntity) SetId(id int) {
+	e.ID = id
 }
 
 func (e ItemEntity) TableName() string {

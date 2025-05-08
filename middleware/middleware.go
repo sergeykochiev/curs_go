@@ -53,8 +53,13 @@ func WithDbEntityContextFactory[T interface {
 }](entity T, db *gorm.DB) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			id := chi.URLParam(r, "id")
-			res := entity.GetPreloadedDb(db).First(&entity, id)
+			id, err := strconv.Atoi(chi.URLParam(r, "id"))
+			if err != nil {
+				http.Error(w, "Error parsing id", 404)
+				return
+			}
+			entity.SetId(id)
+			res := entity.GetPreloadedDb(db).First(&entity)
 			if res.Error != nil {
 				http.Error(w, "ID not found", 404)
 				return

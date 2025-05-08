@@ -101,6 +101,10 @@ func (e OrderItemFulfillmentEntity) GetId() int {
 	return e.ID
 }
 
+func (e *OrderItemFulfillmentEntity) SetId(id int) {
+	e.ID = id
+}
+
 func (e OrderItemFulfillmentEntity) TableName() string {
 	return "order_item_fulfillment"
 }

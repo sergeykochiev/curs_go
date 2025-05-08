@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	. "github.com/sergeykochiev/curs/backend/gui"
 	"gorm.io/gorm"
@@ -16,12 +17,12 @@ import (
 )
 
 type ItemResourceNeed struct {
-	ID                 int
-	Resource_id        int
-	Item_id            int
-	Quantity_fulfilled float32
-	ResourceEntity     ResourceEntity `gorm:"foreignKey:Resource_id"`
-	ItemEntity         ItemEntity     `gorm:"foreignKey:Item_id"`
+	ID              int
+	Resource_id     int
+	Item_id         int
+	Quantity_needed float32
+	ResourceEntity  ResourceEntity `gorm:"foreignKey:Resource_id"`
+	ItemEntity      ItemEntity     `gorm:"foreignKey:Item_id"`
 }
 
 func (e ItemResourceNeed) GetEntityPageButtons() Group {
@@ -54,7 +55,7 @@ func (e ItemResourceNeed) GetDataRow() Group {
 		TableDataComponent(html.EscapeString(fmt.Sprintf("%d", e.ID)), Td, fmt.Sprintf("/item_resource_need/%d", e.ID)),
 		TableDataComponent(e.ResourceEntity.Name, Td, ""),
 		TableDataComponent(e.ItemEntity.Name, Td, ""),
-		TableDataComponent(fmt.Sprintf("%f", e.Quantity_fulfilled), Td, ""),
+		TableDataComponent(fmt.Sprintf("%f", e.Quantity_needed), Td, ""),
 	}
 }
 
@@ -69,10 +70,10 @@ func (e ItemResourceNeed) GetTableHeader() Group {
 
 func (e ItemResourceNeed) GetEntityPage(recursive bool) Group {
 	return Group{
-		LabeledFieldComponent("Количество необходимо (единиц)", fmt.Sprintf("%f", e.Quantity_fulfilled)),
+		LabeledFieldComponent("Количество необходимо (единиц)", fmt.Sprintf("%f", e.Quantity_needed)),
 		If(recursive, Group{
-			RelationCardComponent(fmt.Sprintf("Необходимо на ресурс #%d", e.Resource_id), &e.ResourceEntity),
-			RelationCardComponent(fmt.Sprintf("Необходимо для товара #%d (%f шт.)", e.Item_id, e.Quantity_fulfilled), &e.ItemEntity),
+			RelationCardComponent(fmt.Sprintf("Необходим ресурс #%d (%f %s)", e.Resource_id, e.Quantity_needed, strings.ToLower(e.ResourceEntity.One_is_called)), &e.ResourceEntity),
+			RelationCardComponent(fmt.Sprintf("Необходимо для товара #%d", e.Item_id), &e.ItemEntity),
 		}),
 	}
 }
@@ -101,6 +102,10 @@ func (e ItemResourceNeed) GetId() int {
 	return e.ID
 }
 
+func (e *ItemResourceNeed) SetId(id int) {
+	e.ID = id
+}
+
 func (e ItemResourceNeed) TableName() string {
 	return "item_resource_need"
 }
@@ -123,7 +128,7 @@ func (e *ItemResourceNeed) ValidateAndParseForm(r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	e.Quantity_fulfilled = float32(quantity_needed)
+	e.Quantity_needed = float32(quantity_needed)
 	return nil
 }
 

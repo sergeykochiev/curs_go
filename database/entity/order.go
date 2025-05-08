@@ -29,9 +29,9 @@ type OrderEntity struct {
 	Date_ended                   sql.NullString
 	Ended                        int
 	Creator_id                   int
-	UserEntity                   UserEntity                    `gorm:"foreignKey:Creator_id"`
-	OrderItemFulfillmentEntities []OrderItemFulfillmentEntity  `gorm:"foreignKey:Order_id"`
-	ResourceSpendingEntities     []OrderResourceSpendingEntity `gorm:"foreignKey:Order_id"`
+	UserEntity                   UserEntity                     `gorm:"foreignKey:Creator_id"`
+	OrderItemFulfillmentEntities []*OrderItemFulfillmentEntity  `gorm:"foreignKey:Order_id"`
+	ResourceSpendingEntities     []*OrderResourceSpendingEntity `gorm:"foreignKey:Order_id"`
 }
 
 func (e OrderEntity) GetEntityPageButtons() Group {
@@ -174,6 +174,10 @@ func (e OrderEntity) GetReadableName() string {
 
 func (e OrderEntity) GetId() int {
 	return e.ID
+}
+
+func (e *OrderEntity) SetId(id int) {
+	e.ID = id
 }
 
 func (e OrderEntity) TableName() string {
