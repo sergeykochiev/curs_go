@@ -1,12 +1,27 @@
 package util
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"time"
 
 	billgen_types "github.com/sergeykochiev/billgen/types"
+	"github.com/sergeykochiev/curs/backend/types"
 )
+
+func GetOneReadableName[T interface {
+	types.Identifier
+	types.HtmlTemplater
+}](ent T) string {
+	return fmt.Sprintf("%s #%d", ent.GetReadableName(), ent.GetId())
+}
+
+func GetOneHref[T interface {
+	types.Identifier
+}](ent T) string {
+	return fmt.Sprintf("/%s/%d", ent.TableName(), ent.GetId())
+}
 
 func RunOnQ(q *chan func(), f func() error) error {
 	err := make(chan error)

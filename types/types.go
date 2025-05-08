@@ -34,8 +34,11 @@ type FormParser interface {
 	ValidateAndParseForm(r *http.Request) error
 }
 
+type IdSetter interface {
+	SetId(id int)
+}
+
 type Identifier interface {
 	TableName() string
 	GetId() int
-	SetId(id int)
 }

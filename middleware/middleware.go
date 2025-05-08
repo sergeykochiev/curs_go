@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -48,7 +49,7 @@ func WithAuthUserContext(db *gorm.DB) func(next http.Handler) http.Handler {
 }
 
 func WithDbEntityContextFactory[T interface {
-	types.Identifier
+	types.IdSetter
 	types.Preloader
 }](entity T, db *gorm.DB) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -60,6 +61,7 @@ func WithDbEntityContextFactory[T interface {
 			}
 			entity.SetId(id)
 			res := entity.GetPreloadedDb(db).First(&entity)
+			fmt.Println(entity)
 			if res.Error != nil {
 				http.Error(w, "ID not found", 404)
 				return

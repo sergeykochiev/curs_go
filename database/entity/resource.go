@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	. "github.com/sergeykochiev/curs/backend/gui"
+	"github.com/sergeykochiev/curs/backend/util"
 	"gorm.io/gorm"
 	. "maragu.dev/gomponents"
 	_ "maragu.dev/gomponents/components"
@@ -22,8 +23,9 @@ type ResourceEntity struct {
 	Cost_by_one              float32
 	One_is_called            string
 	Quantity                 float32
-	ResourceResupplyEntities []*ResourceResupplyEntity      `gorm:"foreignKey:Resource_id"`
-	ResourceSpendingEntities []*OrderResourceSpendingEntity `gorm:"foreignKey:Resource_id"`
+	ResourceResupplyEntities []ResourceResupplyEntity      `gorm:"foreignKey:Resource_id"`
+	ResourceSpendingEntities []OrderResourceSpendingEntity `gorm:"foreignKey:Resource_id"`
+	ItemResourceNeeds        []ItemResourceNeed            `gorm:"foreignKey:Resource_id"`
 }
 
 func (e ResourceEntity) GetEntityPageButtons() Group {
@@ -39,7 +41,7 @@ func (e *ResourceEntity) GetFilters() Group {
 }
 
 func (e *ResourceEntity) GetPreloadedDb(db *gorm.DB) *gorm.DB {
-	return db.Joins("ResourceResupplyEntities").Joins("ResourceSpendingEntities")
+	return db.Preload("ResourceResupplyEntities").Preload("ResourceSpendingEntities").Preload("ItemResourceNeeds")
 }
 
 func (e *ResourceEntity) GetFilteredDb(filters url.Values, db *gorm.DB) *gorm.DB {
@@ -87,8 +89,21 @@ func (e ResourceEntity) GetEntityPage(recursive bool) Group {
 		LabeledFieldComponent("Цена за единицу", fmt.Sprintf("%f", e.Cost_by_one)),
 		LabeledFieldComponent("Единица", e.One_is_called),
 		LabeledFieldComponent("Количество", fmt.Sprintf("%f", e.Quantity)),
-		If(recursive, RelationCardArrComponent("Траты", e.ResourceSpendingEntities)),
-		If(recursive, RelationCardArrComponent("Поставки", e.ResourceResupplyEntities)),
+		If(recursive, RelationCardArrComponent("Траты", e.ResourceSpendingEntities, func(ent OrderResourceSpendingEntity) Node {
+			return RelationCardCoreComponent(util.GetOneReadableName(ent), util.GetOneHref(ent), Group{
+				ent.GetEntityPage(false),
+				ent.OrderEntity.GetEntityPage(false),
+			})
+		})),
+		If(recursive, RelationCardArrComponent("Необходим товарам", e.ItemResourceNeeds, func(ent ItemResourceNeed) Node {
+			return RelationCardCoreComponent(util.GetOneReadableName(ent), util.GetOneHref(ent), Group{
+				ent.GetEntityPage(false),
+				ent.ItemEntity.GetEntityPage(false),
+			})
+		})),
+		If(recursive, RelationCardArrComponent("Поставки", e.ResourceResupplyEntities, func(ent ResourceResupplyEntity) Node {
+			return RelationCardComponent(util.GetOneReadableName(ent), ent)
+		})),
 	}
 }
 
@@ -100,11 +115,11 @@ func (e ResourceEntity) GetCreateForm(db *gorm.DB) Group {
 	}
 }
 
-func (e *ResourceEntity) GetReadableName() string {
+func (e ResourceEntity) GetReadableName() string {
 	return "Ресурс"
 }
 
-func (e *ResourceEntity) GetId() int {
+func (e ResourceEntity) GetId() int {
 	return e.ID
 }
 
@@ -112,11 +127,11 @@ func (e *ResourceEntity) SetId(id int) {
 	e.ID = id
 }
 
-func (e *ResourceEntity) Validate() bool {
+func (e ResourceEntity) Validate() bool {
 	return true
 }
 
-func (e *ResourceEntity) TableName() string {
+func (e ResourceEntity) TableName() string {
 	return "resource"
 }
 

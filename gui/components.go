@@ -74,22 +74,28 @@ func RelationCardComponent[T interface {
 	types.HtmlTemplater
 	types.Identifier
 }](heading string, ent T) Node {
+	return RelationCardCoreComponent(
+		heading, GetOneHref(ent), ent.GetEntityPage(false),
+	)
+}
+
+func RelationCardCoreComponent(heading string, href string, children Group) Node {
 	return A(
-		Href(fmt.Sprintf("/%s/%d", ent.TableName(), ent.GetId())),
+		Href(href),
 		Class("transition-all bg-gray-100 flex flex-col gap-[8px] p-[8px] hover:bg-gray-200 outline outline-[1.5px] outline-gray-400"),
 		H2(Text(heading)),
-		ent.GetEntityPage(false),
+		children,
 	)
 }
 
 func RelationCardArrComponent[T interface {
 	types.HtmlTemplater
 	types.Identifier
-}](heading string, arr []T) Node {
+}](heading string, arr []T, f func(ent T) Node) Node {
 	return MainDataContainerComponent(Div, Group{
 		H2(Text(heading)),
 		If(len(arr) > 0, Map(arr, func(ent T) Node {
-			return RelationCardComponent(ent.GetReadableName(), ent)
+			return f(ent)
 		})),
 		If(len(arr) == 0, Text("No data")),
 	}, true)

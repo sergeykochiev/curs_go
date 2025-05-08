@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	. "github.com/sergeykochiev/curs/backend/gui"
+	"github.com/sergeykochiev/curs/backend/util"
 	"gorm.io/gorm"
 	. "maragu.dev/gomponents"
 	_ "maragu.dev/gomponents/components"
@@ -20,7 +21,7 @@ type ItemEntity struct {
 	Name                         string
 	Cost_by_one                  float32
 	One_is_called                string
-	OrderItemFulfillmentEntities []*OrderItemFulfillmentEntity `gorm:"foreignKey:Item_id"`
+	OrderItemFulfillmentEntities []OrderItemFulfillmentEntity `gorm:"foreignKey:Item_id"`
 }
 
 func (e ItemEntity) GetEntityPageButtons() Group {
@@ -34,8 +35,8 @@ func (e *ItemEntity) GetFilters() Group {
 	}
 }
 
-func (e *ItemEntity) GetPreloadedDb(db *gorm.DB) *gorm.DB {
-	return db.Preload("OrderItemFulfillmentEntities.OrderEntity")
+func (e ItemEntity) GetPreloadedDb(db *gorm.DB) *gorm.DB {
+	return db.Joins("OrderItemFulfillmentEntities")
 }
 
 func (e *ItemEntity) GetFilteredDb(filters url.Values, db *gorm.DB) *gorm.DB {
@@ -66,12 +67,17 @@ func (e ItemEntity) GetTableHeader() Group {
 	}
 }
 
-func (e ItemEntity) GetEntityPage(recursive bool) Group {
+func (e *ItemEntity) GetEntityPage(recursive bool) Group {
 	return Group{
 		LabeledFieldComponent("Название", e.Name),
 		LabeledFieldComponent("Цена за единицу", fmt.Sprintf("%f", e.Cost_by_one)),
 		LabeledFieldComponent("Единица", e.One_is_called),
-		If(recursive, RelationCardArrComponent("Заказы, на которые предоставлен", e.OrderItemFulfillmentEntities)),
+		If(recursive, RelationCardArrComponent("Предоставления", e.OrderItemFulfillmentEntities, func(ent OrderItemFulfillmentEntity) Node {
+			return RelationCardCoreComponent(util.GetOneReadableName(ent), util.GetOneHref(ent), Group{
+				ent.GetEntityPage(false),
+				ent.OrderEntity.GetEntityPage(false),
+			})
+		})),
 	}
 }
 
@@ -99,7 +105,7 @@ func (e ItemEntity) TableName() string {
 	return "item"
 }
 
-func (e *ItemEntity) Validate() bool {
+func (e ItemEntity) Validate() bool {
 	return true
 }
 

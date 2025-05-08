@@ -20,18 +20,18 @@ import (
 )
 
 type OrderEntity struct {
-	ID                           int
-	Name                         string
-	Client_name                  string
-	Client_phone                 string
-	Company_name                 sql.NullString
-	Date_created                 string
-	Date_ended                   sql.NullString
-	Ended                        int
-	Creator_id                   int
-	UserEntity                   UserEntity                     `gorm:"foreignKey:Creator_id"`
-	OrderItemFulfillmentEntities []*OrderItemFulfillmentEntity  `gorm:"foreignKey:Order_id"`
-	ResourceSpendingEntities     []*OrderResourceSpendingEntity `gorm:"foreignKey:Order_id"`
+	ID                            int
+	Name                          string
+	Client_name                   string
+	Client_phone                  string
+	Company_name                  sql.NullString
+	Date_created                  string
+	Date_ended                    sql.NullString
+	Ended                         int
+	Creator_id                    int
+	UserEntity                    UserEntity                    `gorm:"foreignKey:Creator_id"`
+	OrderItemFulfillmentEntities  []OrderItemFulfillmentEntity  `gorm:"foreignKey:Order_id"`
+	OrderResourceSpendingEntities []OrderResourceSpendingEntity `gorm:"foreignKey:Order_id"`
 }
 
 func (e OrderEntity) GetEntityPageButtons() Group {
@@ -153,8 +153,18 @@ func (e OrderEntity) GetEntityPage(recursive bool) Group {
 			H2(Text(fmt.Sprintf("Создал пользователь #%d", e.Creator_id))),
 			LabeledFieldComponent("Имя", e.UserEntity.Name),
 		)),
-		If(recursive, RelationCardArrComponent("Предоставленные товары", e.OrderItemFulfillmentEntities)),
-		If(recursive, RelationCardArrComponent("Потраченные ресурсы", e.ResourceSpendingEntities)),
+		If(recursive, RelationCardArrComponent("Предоставленные товары", e.OrderItemFulfillmentEntities, func(ent OrderItemFulfillmentEntity) Node {
+			return RelationCardCoreComponent(GetOneReadableName(ent), GetOneHref(ent), Group{
+				ent.GetEntityPage(false),
+				ent.ItemEntity.GetEntityPage(false),
+			})
+		})),
+		If(recursive, RelationCardArrComponent("Потраченные ресурсы", e.OrderResourceSpendingEntities, func(ent OrderResourceSpendingEntity) Node {
+			return RelationCardCoreComponent(GetOneReadableName(ent), GetOneHref(ent), Group{
+				ent.GetEntityPage(false),
+				ent.ResourceEntity.GetEntityPage(false),
+			})
+		})),
 	}
 }
 
@@ -172,7 +182,7 @@ func (e OrderEntity) GetReadableName() string {
 	return "Заказ"
 }
 
-func (e OrderEntity) GetId() int {
+func (e *OrderEntity) GetId() int {
 	return e.ID
 }
 
@@ -180,7 +190,7 @@ func (e *OrderEntity) SetId(id int) {
 	e.ID = id
 }
 
-func (e OrderEntity) TableName() string {
+func (e *OrderEntity) TableName() string {
 	return "order"
 }
 
