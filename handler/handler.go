@@ -15,12 +15,12 @@ func EndOrder(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 	ord := r.Context().Value("entity").(*entity.OrderEntity)
 	ord.Date_ended.Valid = true
 	ord.Date_ended.String = util.GetCurrentTime()
-	ord.Ended = 1
+	ord.Ended = true
 	if res := db.Updates(&ord); res.Error != nil {
 		http.Error(w, res.Error.Error(), http.StatusInternalServerError)
 		return
 	}
-	http.Redirect(w, r, fmt.Sprintf("/order/%d", ord.ID), http.StatusSeeOther)
+	http.Redirect(w, r, fmt.Sprintf("/order/%d", ord.Id), http.StatusSeeOther)
 }
 
 func LoginPost(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
@@ -35,7 +35,7 @@ func LoginPost(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 	}
 	var cookie http.Cookie
 	cookie.Name = "token"
-	cookie.Value = fmt.Sprintf("%d", user.ID)
+	cookie.Value = fmt.Sprintf("%d", user.Id)
 	http.SetCookie(w, &cookie)
 	w.Header().Add("Location", "/")
 	w.WriteHeader(http.StatusSeeOther)
@@ -43,7 +43,7 @@ func LoginPost(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 
 func GenerateOrderBill(w http.ResponseWriter, r *http.Request, db *gorm.DB, tf billgen_types.GenFunc, main_q *chan func()) {
 	ord := r.Context().Value("entity").(*entity.OrderEntity)
-	if ord.Ended != 1 {
+	if !ord.Ended {
 		http.Error(w, "Order is not ended", http.StatusBadRequest)
 		return
 	}

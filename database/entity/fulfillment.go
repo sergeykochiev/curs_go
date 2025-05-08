@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	. "github.com/sergeykochiev/curs/backend/gui"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 	. "maragu.dev/gomponents"
 	_ "maragu.dev/gomponents/components"
@@ -16,9 +17,9 @@ import (
 )
 
 type OrderItemFulfillmentEntity struct {
-	ID                 int
-	Order_id           int
-	Item_id            int
+	Id                 decimal.Decimal `gorm:"primaryKey"`
+	Order_id           decimal.Decimal
+	Item_id            decimal.Decimal
 	Quantity_fulfilled float32
 	OrderEntity        OrderEntity `gorm:"foreignKey:Order_id"`
 	ItemEntity         ItemEntity  `gorm:"foreignKey:Item_id"`
@@ -51,7 +52,7 @@ func (e *OrderItemFulfillmentEntity) GetFilteredDb(filters url.Values, db *gorm.
 
 func (e OrderItemFulfillmentEntity) GetDataRow() Group {
 	return Group{
-		TableDataComponent(html.EscapeString(fmt.Sprintf("%d", e.ID)), Td, fmt.Sprintf("/order_item_fulfillment/%d", e.ID)),
+		TableDataComponent(html.EscapeString(fmt.Sprintf("%d", e.GetId())), Td, fmt.Sprintf("/order_item_fulfillment/%d", e.GetId())),
 		TableDataComponent(e.OrderEntity.Name, Td, ""),
 		TableDataComponent(e.ItemEntity.Name, Td, ""),
 		TableDataComponent(fmt.Sprintf("%f", e.Quantity_fulfilled), Td, ""),
@@ -60,7 +61,7 @@ func (e OrderItemFulfillmentEntity) GetDataRow() Group {
 
 func (e OrderItemFulfillmentEntity) GetTableHeader() Group {
 	return Group{
-		TableDataComponent("ID", Th, ""),
+		TableDataComponent("Id", Th, ""),
 		TableDataComponent("Название заказа", Th, ""),
 		TableDataComponent("Наименование товара", Th, ""),
 		TableDataComponent("Количество предоставлено (единиц)", Th, ""),
@@ -97,12 +98,16 @@ func (e OrderItemFulfillmentEntity) Validate() bool {
 	return true
 }
 
-func (e OrderItemFulfillmentEntity) GetId() int {
-	return e.ID
+func (e OrderItemFulfillmentEntity) GetId() int64 {
+	return e.Id.IntPart()
 }
 
-func (e *OrderItemFulfillmentEntity) SetId(id int) {
-	e.ID = id
+func (e *OrderItemFulfillmentEntity) Clear() {
+	*e = OrderItemFulfillmentEntity{}
+}
+
+func (e *OrderItemFulfillmentEntity) SetId(id int64) {
+	e.Id = decimal.NewFromInt(id)
 }
 
 func (e OrderItemFulfillmentEntity) TableName() string {
@@ -115,11 +120,11 @@ func (e *OrderItemFulfillmentEntity) ValidateAndParseForm(r *http.Request) error
 		return errors.New("Invalid fields")
 	}
 	var err error
-	e.Order_id, err = strconv.Atoi(form.Get("order_id"))
+	e.Order_id, err = decimal.NewFromString(form.Get("order_id"))
 	if err != nil {
 		return err
 	}
-	e.Item_id, err = strconv.Atoi(form.Get("item_id"))
+	e.Item_id, err = decimal.NewFromString(form.Get("item_id"))
 	if err != nil {
 		return err
 	}
@@ -132,7 +137,7 @@ func (e *OrderItemFulfillmentEntity) ValidateAndParseForm(r *http.Request) error
 }
 
 // func (e *OrderItemFulfillmentEntity) AfterCreate(tx *gorm.DB) (err error) {
-// 	e.ResourceEntity.ID = e.Resource_id
+// 	e.ResourceEntity.GetId() = e.Resource_id
 // 	res := tx.First(&e.ResourceEntity)
 // 	if res.Error != nil {
 // 		return res.Error

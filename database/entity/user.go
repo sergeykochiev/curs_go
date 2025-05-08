@@ -2,12 +2,13 @@ package entity
 
 import (
 	. "github.com/sergeykochiev/curs/backend/gui"
+	"github.com/shopspring/decimal"
 	. "maragu.dev/gomponents"
 	_ "maragu.dev/gomponents/components"
 )
 
 type UserEntity struct {
-	ID       int
+	Id       decimal.Decimal `gorm:"primaryKey"`
 	Name     string
 	Password string
 	Is_admin bool
@@ -31,22 +32,22 @@ type UserEntity struct {
 // 	}
 // }
 
-func (e *UserEntity) GetEntityPage(recursive bool) Group {
+func (e UserEntity) GetEntityPage(recursive bool) Group {
 	return Group{
 		LabeledFieldComponent("Имя", e.Name),
 	}
 }
 
-func (e *UserEntity) Validate() bool {
+func (e UserEntity) Validate() bool {
 	return len(e.Password) >= 8
 }
 
-func (e *UserEntity) CheckPassword(password string) bool {
+func (e UserEntity) CheckPassword(password string) bool {
 	return password == e.Password
 }
 
-func (e *UserEntity) GetId() int {
-	return e.ID
+func (e UserEntity) GetId() int64 {
+	return e.Id.IntPart()
 }
 
 func (e UserEntity) TableName() string {

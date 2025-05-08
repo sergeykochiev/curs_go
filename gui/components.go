@@ -148,7 +148,7 @@ func LabeledInputComponent(t string, ph string, name string, label string, defau
 func SelectComponent[T interface {
 	types.HtmlTemplater
 	types.Identifier
-}](arr []T, ph string, getText func(T) string, label string, name string, required bool, id int) Node {
+}](arr []T, ph string, getText func(T) string, label string, name string, required bool, id int64) Node {
 	return LabelComponent(
 		Select(
 			If(required, Required()),
@@ -295,7 +295,7 @@ func MainPageComponent() Node {
 }
 
 func MainWrapperClass(class string) Node {
-	return Class("flex flex-col mt-[30px] max-w-[1440px] gap-[16px] grid grid-cols-1 w-full " + class)
+	return Class("flex flex-col mt-[30px] max-w-[1440px] gap-[16px] grid grid-cols-1 w-full pb-[32px] " + class)
 }
 
 func ButtonComponent(text string, as func(children ...Node) Node, children ...Node) Node {

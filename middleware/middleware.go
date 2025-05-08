@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/sergeykochiev/curs/backend/database/entity"
 	"github.com/sergeykochiev/curs/backend/types"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
 
@@ -27,15 +28,15 @@ func WithAuthUserContext(db *gorm.DB) func(next http.Handler) http.Handler {
 				http.Redirect(w, r, "/login", http.StatusSeeOther)
 				return
 			}
-			int_id, err := strconv.Atoi(r.CookiesNamed("token")[0].Value)
+			id, err := decimal.NewFromString(r.CookiesNamed("token")[0].Value)
 			if err != nil {
-				http.Error(w, "Failed to get userID", 404)
+				http.Error(w, "Failed to get userID: "+err.Error(), 404)
 				return
 			}
-			user := entity.UserEntity{ID: int_id}
+			user := entity.UserEntity{Id: id}
 			res := db.First(&user)
 			if res.Error != nil && res.Error != gorm.ErrRecordNotFound {
-				http.Error(w, "Failed to get userID", 404)
+				http.Error(w, "Failed to find user by name: "+res.Error.Error(), 404)
 				return
 			} else if res.Error != nil {
 				w.Header().Add("Location", "/login")
@@ -49,21 +50,22 @@ func WithAuthUserContext(db *gorm.DB) func(next http.Handler) http.Handler {
 }
 
 func WithDbEntityContextFactory[T interface {
-	types.IdSetter
+	types.Writable
 	types.Preloader
 }](entity T, db *gorm.DB) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			id, err := strconv.Atoi(chi.URLParam(r, "id"))
 			if err != nil {
-				http.Error(w, "Error parsing id", 404)
+				http.Error(w, "Error parsing id: "+err.Error(), 404)
 				return
 			}
-			entity.SetId(id)
+			entity.Clear()
+			entity.SetId(int64(id))
 			res := entity.GetPreloadedDb(db).First(&entity)
 			fmt.Println(entity)
 			if res.Error != nil {
-				http.Error(w, "ID not found", 404)
+				http.Error(w, "ID not found: "+res.Error.Error(), 404)
 				return
 			}
 			ctx := context.WithValue(r.Context(), "entity", entity)

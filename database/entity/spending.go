@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	. "github.com/sergeykochiev/curs/backend/gui"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 	. "maragu.dev/gomponents"
 	_ "maragu.dev/gomponents/components"
@@ -16,9 +17,9 @@ import (
 )
 
 type OrderResourceSpendingEntity struct {
-	ID             int
-	Order_id       int
-	Resource_id    int
+	Id             decimal.Decimal `gorm:"primaryKey"`
+	Order_id       decimal.Decimal
+	Resource_id    decimal.Decimal
 	Quantity_spent float32
 	Date           string
 	OrderEntity    OrderEntity    `gorm:"foreignKey:Order_id"`
@@ -59,7 +60,7 @@ func (e *OrderResourceSpendingEntity) GetFilteredDb(filters url.Values, db *gorm
 
 func (e OrderResourceSpendingEntity) GetDataRow() Group {
 	return Group{
-		TableDataComponent(html.EscapeString(fmt.Sprintf("%d", e.ID)), Td, fmt.Sprintf("/resource_spending/%d", e.ID)),
+		TableDataComponent(html.EscapeString(fmt.Sprintf("%d", e.GetId())), Td, fmt.Sprintf("/resource_spending/%d", e.GetId())),
 		TableDataComponent(e.OrderEntity.Name, Td, ""),
 		TableDataComponent(e.ResourceEntity.Name, Td, ""),
 		TableDataComponent(fmt.Sprintf("%f", e.Quantity_spent), Td, ""),
@@ -69,7 +70,7 @@ func (e OrderResourceSpendingEntity) GetDataRow() Group {
 
 func (e OrderResourceSpendingEntity) GetTableHeader() Group {
 	return Group{
-		TableDataComponent("ID", Th, ""),
+		TableDataComponent("Id", Th, ""),
 		TableDataComponent("Название заказа", Th, ""),
 		TableDataComponent("Наименование ресурса", Th, ""),
 		TableDataComponent("Количество потрачено (единиц)", Th, ""),
@@ -109,12 +110,16 @@ func (e *OrderResourceSpendingEntity) Validate() bool {
 	return true
 }
 
-func (e OrderResourceSpendingEntity) GetId() int {
-	return e.ID
+func (e OrderResourceSpendingEntity) GetId() int64 {
+	return e.Id.IntPart()
 }
 
-func (e *OrderResourceSpendingEntity) SetId(id int) {
-	e.ID = id
+func (e *OrderResourceSpendingEntity) SetId(id int64) {
+	e.Id = decimal.NewFromInt(id)
+}
+
+func (e *OrderResourceSpendingEntity) Clear() {
+	*e = OrderResourceSpendingEntity{}
 }
 
 func (e OrderResourceSpendingEntity) TableName() string {
@@ -127,11 +132,11 @@ func (e *OrderResourceSpendingEntity) ValidateAndParseForm(r *http.Request) erro
 		return errors.New("Invalid fields")
 	}
 	var err error
-	e.Order_id, err = strconv.Atoi(form.Get("order_id"))
+	e.Order_id, err = decimal.NewFromString(form.Get("order_id"))
 	if err != nil {
 		return err
 	}
-	e.Resource_id, err = strconv.Atoi(form.Get("resource_id"))
+	e.Resource_id, err = decimal.NewFromString(form.Get("resource_id"))
 	if err != nil {
 		return err
 	}
@@ -145,7 +150,7 @@ func (e *OrderResourceSpendingEntity) ValidateAndParseForm(r *http.Request) erro
 }
 
 func (e *OrderResourceSpendingEntity) AfterCreate(tx *gorm.DB) (err error) {
-	e.ResourceEntity.ID = e.Resource_id
+	e.ResourceEntity.Id = e.Resource_id
 	res := tx.First(&e.ResourceEntity)
 	if res.Error != nil {
 		return res.Error

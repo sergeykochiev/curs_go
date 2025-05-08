@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	. "github.com/sergeykochiev/curs/backend/gui"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 	. "maragu.dev/gomponents"
 	_ "maragu.dev/gomponents/components"
@@ -17,9 +18,9 @@ import (
 )
 
 type ItemResourceNeed struct {
-	ID              int
-	Resource_id     int
-	Item_id         int
+	Id              decimal.Decimal `gorm:"primaryKey"`
+	Resource_id     decimal.Decimal
+	Item_id         decimal.Decimal
 	Quantity_needed float32
 	ResourceEntity  ResourceEntity `gorm:"foreignKey:Resource_id"`
 	ItemEntity      ItemEntity     `gorm:"foreignKey:Item_id"`
@@ -52,7 +53,7 @@ func (e *ItemResourceNeed) GetFilteredDb(filters url.Values, db *gorm.DB) *gorm.
 
 func (e ItemResourceNeed) GetDataRow() Group {
 	return Group{
-		TableDataComponent(html.EscapeString(fmt.Sprintf("%d", e.ID)), Td, fmt.Sprintf("/item_resource_need/%d", e.ID)),
+		TableDataComponent(html.EscapeString(fmt.Sprintf("%d", e.GetId())), Td, fmt.Sprintf("/item_resource_need/%d", e.GetId())),
 		TableDataComponent(e.ResourceEntity.Name, Td, ""),
 		TableDataComponent(e.ItemEntity.Name, Td, ""),
 		TableDataComponent(fmt.Sprintf("%f", e.Quantity_needed), Td, ""),
@@ -61,7 +62,7 @@ func (e ItemResourceNeed) GetDataRow() Group {
 
 func (e ItemResourceNeed) GetTableHeader() Group {
 	return Group{
-		TableDataComponent("ID", Th, ""),
+		TableDataComponent("Id", Th, ""),
 		TableDataComponent("Название ресурса", Th, ""),
 		TableDataComponent("Наименование товара", Th, ""),
 		TableDataComponent("Количество предоставлено (единиц)", Th, ""),
@@ -98,12 +99,16 @@ func (e ItemResourceNeed) Validate() bool {
 	return true
 }
 
-func (e ItemResourceNeed) GetId() int {
-	return e.ID
+func (e ItemResourceNeed) GetId() int64 {
+	return e.Id.IntPart()
 }
 
-func (e *ItemResourceNeed) SetId(id int) {
-	e.ID = id
+func (e *ItemResourceNeed) Clear() {
+	*e = ItemResourceNeed{}
+}
+
+func (e *ItemResourceNeed) SetId(id int64) {
+	e.Id = decimal.NewFromInt(id)
 }
 
 func (e ItemResourceNeed) TableName() string {
@@ -116,11 +121,11 @@ func (e *ItemResourceNeed) ValidateAndParseForm(r *http.Request) error {
 		return errors.New("Invalid fields")
 	}
 	var err error
-	e.Resource_id, err = strconv.Atoi(form.Get("Resource_id"))
+	e.Resource_id, err = decimal.NewFromString(form.Get("Resource_id"))
 	if err != nil {
 		return err
 	}
-	e.Item_id, err = strconv.Atoi(form.Get("item_id"))
+	e.Item_id, err = decimal.NewFromString(form.Get("item_id"))
 	if err != nil {
 		return err
 	}
@@ -133,7 +138,7 @@ func (e *ItemResourceNeed) ValidateAndParseForm(r *http.Request) error {
 }
 
 // func (e *ItemResourceNeed) AfterCreate(tx *gorm.DB) (err error) {
-// 	e.ResourceEntity.ID = e.Resource_id
+// 	e.ResourceEntity.Id = e.Resource_id
 // 	res := tx.First(&e.ResourceEntity)
 // 	if res.Error != nil {
 // 		return res.Error

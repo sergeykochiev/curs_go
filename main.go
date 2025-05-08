@@ -39,7 +39,7 @@ func EntityRouterFactory[T interface {
 	types.FormParser
 	types.Filterator
 	types.Preloader
-	types.IdSetter
+	types.Writable
 }](db *gorm.DB, entity T, id_route func(r chi.Router)) func(r chi.Router) {
 	preloadedDb := entity.GetPreloadedDb(db)
 	create := func(w http.ResponseWriter, r *http.Request) {

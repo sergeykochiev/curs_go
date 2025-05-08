@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	. "github.com/sergeykochiev/curs/backend/gui"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 	. "maragu.dev/gomponents"
 	_ "maragu.dev/gomponents/components"
@@ -16,8 +17,8 @@ import (
 )
 
 type ResourceResupplyEntity struct {
-	ID             int
-	Resource_id    int
+	Id             decimal.Decimal `gorm:"primaryKey"`
+	Resource_id    decimal.Decimal
 	Quantity_added float32
 	Date           string
 	ResourceEntity ResourceEntity `gorm:"foreignKey:Resource_id"`
@@ -53,7 +54,7 @@ func (e *ResourceResupplyEntity) GetFilteredDb(filters url.Values, db *gorm.DB) 
 
 func (e ResourceResupplyEntity) GetDataRow() Group {
 	return Group{
-		TableDataComponent(html.EscapeString(fmt.Sprintf("%d", e.ID)), Td, fmt.Sprintf("/resource_resupply/%d", e.ID)),
+		TableDataComponent(html.EscapeString(fmt.Sprintf("%d", e.GetId())), Td, fmt.Sprintf("/resource_resupply/%d", e.GetId())),
 		TableDataComponent(e.ResourceEntity.Name, Td, ""),
 		TableDataComponent(fmt.Sprintf("%f", e.Quantity_added), Td, ""),
 		TableDataComponent(e.Date, Td, ""),
@@ -63,7 +64,7 @@ func (e ResourceResupplyEntity) GetDataRow() Group {
 
 func (e ResourceResupplyEntity) GetTableHeader() Group {
 	return Group{
-		TableDataComponent("ID", Th, ""),
+		TableDataComponent("Id", Th, ""),
 		TableDataComponent("Название", Th, ""),
 		TableDataComponent("Цена за единицу", Th, ""),
 		TableDataComponent("Единица", Th, ""),
@@ -99,12 +100,16 @@ func (e *ResourceResupplyEntity) Validate() bool {
 	return true
 }
 
-func (e ResourceResupplyEntity) GetId() int {
-	return e.ID
+func (e ResourceResupplyEntity) GetId() int64 {
+	return e.Id.IntPart()
 }
 
-func (e *ResourceResupplyEntity) SetId(id int) {
-	e.ID = id
+func (e *ResourceResupplyEntity) Clear() {
+	*e = ResourceResupplyEntity{}
+}
+
+func (e *ResourceResupplyEntity) SetId(id int64) {
+	e.Id = decimal.NewFromInt(id)
 }
 
 func (e ResourceResupplyEntity) TableName() string {
@@ -117,7 +122,7 @@ func (e *ResourceResupplyEntity) ValidateAndParseForm(r *http.Request) error {
 		return errors.New("Invalid fields")
 	}
 	var err error
-	e.Resource_id, err = strconv.Atoi(form.Get("resource_id"))
+	e.Resource_id, err = decimal.NewFromString(form.Get("resource_id"))
 	if err != nil {
 		return err
 	}
@@ -131,7 +136,7 @@ func (e *ResourceResupplyEntity) ValidateAndParseForm(r *http.Request) error {
 }
 
 func (e *ResourceResupplyEntity) AfterCreate(tx *gorm.DB) (err error) {
-	e.ResourceEntity.ID = e.Resource_id
+	e.ResourceEntity.Id = e.Resource_id
 	res := tx.First(&e.ResourceEntity)
 	if res.Error != nil {
 		return res.Error

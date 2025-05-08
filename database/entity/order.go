@@ -9,6 +9,7 @@ import (
 	"net/url"
 
 	"github.com/LeKovr/num2word"
+	"github.com/shopspring/decimal"
 
 	billgen_types "github.com/sergeykochiev/billgen/types"
 	. "github.com/sergeykochiev/curs/backend/gui"
@@ -20,15 +21,15 @@ import (
 )
 
 type OrderEntity struct {
-	ID                            int
+	Id                            decimal.Decimal `gorm:"primaryKey"`
 	Name                          string
 	Client_name                   string
 	Client_phone                  string
 	Company_name                  sql.NullString
 	Date_created                  string
 	Date_ended                    sql.NullString
-	Ended                         int
-	Creator_id                    int
+	Ended                         bool
+	Creator_id                    decimal.Decimal
 	UserEntity                    UserEntity                    `gorm:"foreignKey:Creator_id"`
 	OrderItemFulfillmentEntities  []OrderItemFulfillmentEntity  `gorm:"foreignKey:Order_id"`
 	OrderResourceSpendingEntities []OrderResourceSpendingEntity `gorm:"foreignKey:Order_id"`
@@ -36,11 +37,11 @@ type OrderEntity struct {
 
 func (e OrderEntity) GetEntityPageButtons() Group {
 	return Group{
-		If(e.Ended == 1, Group{
-			ButtonComponent("Создать счет", A, Href(fmt.Sprintf("/order/%d/bill", e.ID))),
-			ButtonComponent("Создать накладную", A, Href(fmt.Sprintf("/order/%d/invoice", e.ID))),
+		If(e.Ended, Group{
+			ButtonComponent("Создать счет", A, Href(fmt.Sprintf("/order/%d/bill", e.GetId()))),
+			ButtonComponent("Создать накладную", A, Href(fmt.Sprintf("/order/%d/invoice", e.GetId()))),
 		}),
-		If(e.Ended == 0, ButtonComponent("Завершить сейчас", A, Href(fmt.Sprintf("/order/%d/end", e.ID)))),
+		If(!e.Ended, ButtonComponent("Завершить сейчас", A, Href(fmt.Sprintf("/order/%d/end", e.GetId())))),
 	}
 }
 
@@ -113,13 +114,13 @@ func (e *OrderEntity) GetFilteredDb(filters url.Values, db *gorm.DB) *gorm.DB {
 
 func (e OrderEntity) GetDataRow() Group {
 	return Group{
-		TableDataComponent(html.EscapeString(fmt.Sprintf("%d", e.ID)), Td, fmt.Sprintf("/order/%d", e.ID)),
+		TableDataComponent(html.EscapeString(fmt.Sprintf("%d", e.Id)), Td, fmt.Sprintf("/order/%d", e.GetId())),
 		TableDataComponent(e.Name, Td, ""),
 		TableDataComponent(e.Client_name, Td, ""),
 		TableDataComponent(e.Client_phone, Td, ""),
 		TableDataComponent(e.Company_name.String, Td, ""),
 		TableDataComponent(e.Date_created, Td, ""),
-		TableDataComponent(ConditionalArg(e.Ended == 1, "Да", "Нет"), Td, ""),
+		TableDataComponent(ConditionalArg(e.Ended, "Да", "Нет"), Td, ""),
 		TableDataComponent(ConditionalArg(e.Date_ended.Valid, e.Date_ended.String, "-"), Td, ""),
 		TableDataComponent(e.UserEntity.Name, Td, ""),
 	}
@@ -146,7 +147,7 @@ func (e OrderEntity) GetEntityPage(recursive bool) Group {
 		LabeledFieldComponent("Телефон клиента", e.Client_phone),
 		LabeledFieldComponent("Компания клиента", ConditionalArg(e.Company_name.Valid, e.Company_name.String, "-")),
 		LabeledFieldComponent("Дата создания", e.Date_created),
-		LabeledFieldComponent("Завершен", ConditionalArg(e.Ended == 1, "ДА", "НЕТ")),
+		LabeledFieldComponent("Завершен", ConditionalArg(e.Ended, "ДА", "НЕТ")),
 		LabeledFieldComponent("Дата завершения", ConditionalArg(e.Date_ended.Valid, e.Date_ended.String, "-")),
 		If(recursive, Div(
 			Class("bg-gray-100 flex flex-col gap-[8px] p-[8px]"),
@@ -182,12 +183,16 @@ func (e OrderEntity) GetReadableName() string {
 	return "Заказ"
 }
 
-func (e *OrderEntity) GetId() int {
-	return e.ID
+func (e OrderEntity) GetId() int64 {
+	return e.Id.IntPart()
 }
 
-func (e *OrderEntity) SetId(id int) {
-	e.ID = id
+func (e *OrderEntity) Clear() {
+	*e = OrderEntity{}
+}
+
+func (e *OrderEntity) SetId(id int64) {
+	e.Id = decimal.NewFromInt(id)
 }
 
 func (e *OrderEntity) TableName() string {
@@ -211,6 +216,6 @@ func (e *OrderEntity) ValidateAndParseForm(r *http.Request) error {
 	e.Client_phone = form.Get("client_phone")
 	e.Name = form.Get("name")
 	e.Date_created = form.Get("date_created")
-	e.Creator_id = r.Context().Value("user").(UserEntity).ID
+	e.Creator_id = r.Context().Value("user").(UserEntity).Id
 	return nil
 }
