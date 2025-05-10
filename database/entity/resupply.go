@@ -17,8 +17,8 @@ import (
 )
 
 type ResourceResupplyEntity struct {
-	Id             decimal.Decimal `gorm:"primaryKey"`
-	Resource_id    decimal.Decimal
+	Id             decimal.Decimal `gorm:"primaryKey;serializer:decimal"`
+	Resource_id    decimal.Decimal `gorm:"serializer:decimal"`
 	Quantity_added float32
 	Date           string
 	ResourceEntity ResourceEntity `gorm:"foreignKey:Resource_id"`
@@ -56,9 +56,9 @@ func (e ResourceResupplyEntity) GetDataRow() Group {
 	return Group{
 		TableDataComponent(html.EscapeString(fmt.Sprintf("%d", e.GetId())), Td, fmt.Sprintf("/resource_resupply/%d", e.GetId())),
 		TableDataComponent(e.ResourceEntity.Name, Td, ""),
-		TableDataComponent(fmt.Sprintf("%f", e.Quantity_added), Td, ""),
-		TableDataComponent(e.Date, Td, ""),
 		TableDataComponent(fmt.Sprintf("%f", e.ResourceEntity.Cost_by_one), Td, ""),
+		TableDataComponent(e.Date, Td, ""),
+		TableDataComponent(fmt.Sprintf("%f", e.Quantity_added), Td, ""),
 	}
 }
 
@@ -77,7 +77,7 @@ func (e ResourceResupplyEntity) GetEntityPage(recursive bool) Group {
 		LabeledFieldComponent("Количество добавлено (единиц)", fmt.Sprintf("%f", e.Quantity_added)),
 		LabeledFieldComponent("Дата поставки", e.Date),
 		If(recursive, Group{
-			RelationCardComponent(fmt.Sprintf("Поставлен ресурс #%d", e.Resource_id), &e.ResourceEntity),
+			RelationCardComponent(fmt.Sprintf("Поставлен ресурс #%d", e.ResourceEntity.GetId()), &e.ResourceEntity),
 		}),
 	}
 }

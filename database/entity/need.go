@@ -18,9 +18,9 @@ import (
 )
 
 type ItemResourceNeed struct {
-	Id              decimal.Decimal `gorm:"primaryKey"`
-	Resource_id     decimal.Decimal
-	Item_id         decimal.Decimal
+	Id              decimal.Decimal `gorm:"primaryKey;serializer:decimal"`
+	Resource_id     decimal.Decimal `gorm:"serializer:decimal"`
+	Item_id         decimal.Decimal `gorm:"serializer:decimal"`
 	Quantity_needed float32
 	ResourceEntity  ResourceEntity `gorm:"foreignKey:Resource_id"`
 	ItemEntity      ItemEntity     `gorm:"foreignKey:Item_id"`
@@ -73,8 +73,8 @@ func (e ItemResourceNeed) GetEntityPage(recursive bool) Group {
 	return Group{
 		LabeledFieldComponent("Количество необходимо (единиц)", fmt.Sprintf("%f", e.Quantity_needed)),
 		If(recursive, Group{
-			RelationCardComponent(fmt.Sprintf("Необходим ресурс #%d (%f %s)", e.Resource_id, e.Quantity_needed, strings.ToLower(e.ResourceEntity.One_is_called)), &e.ResourceEntity),
-			RelationCardComponent(fmt.Sprintf("Необходимо для товара #%d", e.Item_id), &e.ItemEntity),
+			RelationCardComponent(fmt.Sprintf("Необходим ресурс #%d (%f %s)", e.ResourceEntity.GetId(), e.Quantity_needed, strings.ToLower(e.ResourceEntity.One_is_called)), &e.ResourceEntity),
+			RelationCardComponent(fmt.Sprintf("Необходимо для товара #%d", e.ItemEntity.GetId()), &e.ItemEntity),
 		}),
 	}
 }

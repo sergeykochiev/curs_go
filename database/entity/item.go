@@ -18,7 +18,7 @@ import (
 )
 
 type ItemEntity struct {
-	Id                           decimal.Decimal `gorm:"primaryKey"`
+	Id                           decimal.Decimal `gorm:"primaryKey;serializer:decimal"`
 	Name                         string
 	Cost_by_one                  float32
 	One_is_called                string
@@ -98,7 +98,7 @@ func (e ItemEntity) GetCreateForm(db *gorm.DB) Group {
 }
 
 func (e ItemEntity) GetReadableName() string {
-	return "Товар"
+	return "Товар/услуга"
 }
 
 func (e ItemEntity) GetId() int64 {

@@ -11,13 +11,6 @@ import (
 	. "maragu.dev/gomponents/html"
 )
 
-func NotFoundPage() Node {
-	return Div(
-		Class("w-screen h-screen grid place-items-center text-[32px] font-bold"),
-		Text("404"),
-	)
-}
-
 func He1(text string) Node {
 	return H1(
 		Class("font-bold text-[24px]"),
@@ -41,20 +34,6 @@ func EntityListPageVerticalLayout[T interface {
 		FiltersPanelComponent(ent),
 		DataTableComponent(ent, arr),
 	)
-}
-
-func EntityListPage[T interface {
-	types.HtmlTemplater
-	types.Identifier
-}](ent T, arr []T) Node {
-	return PageComponent(EntityListPageVerticalLayout(ent, arr), ent.GetReadableName(), "На главную", "/", ButtonComponent("Создать", A, Href(ent.TableName()+"/create")))
-}
-
-func EntityPage[T interface {
-	types.HtmlTemplater
-	types.Identifier
-}](ent T) Node {
-	return PageComponent(ent.GetEntityPage(true), fmt.Sprintf("%s #%d", ent.GetReadableName(), ent.GetId()), "К таблице", "/"+ent.TableName(), ent.GetEntityPageButtons())
 }
 
 func PageComponent(content Node, heading string, link_text string, link_href string, buttons ...Node) Node {
@@ -125,14 +104,6 @@ func LabeledFieldComponent(label string, value string) Node {
 		Text(value),
 	)
 }
-
-//	func LabelComponent(children Node, label string) Node {
-//		return Label(
-//			Class("flex flex-col p-[8px] bg-gray-50 gap-[4px] border border-[1px] border-solid border-gray-200 font-medium text-[12px] w-full"),
-//			Text(label),
-//			children,
-//		)
-//	}
 
 func LabelComponent(children Node, label string) Node {
 	return Label(
@@ -262,32 +233,8 @@ func HeadingNavTabComponent(label string, name string, id string, default_checke
 	)
 }
 
-func MainPageComponent() Node {
-	return RootComponent(
-		Main(
-			MainWrapperClass("group/panel"),
-			Div(
-				Class("flex gap-[12px]"),
-				HeadingNavTabComponent("Обычный режим", "input-toggle-mode", "input-toggle-basic", true),
-				HeadingNavTabComponent("Экспертный режим", "input-toggle-mode", "input-toggle-expert", false),
-			),
-			Div(
-				Class("group-has-[input#input-toggle-basic:checked]/panel:hidden grid grid-cols-2 gap-[8px] w-full"),
-				MainPageButtonComponent("/resource", "Ресурсы на складе"),
-				MainPageButtonComponent("/order", "Заказы"),
-				MainPageButtonComponent("/resource_resupply", "Поставки ресурсов"),
-				MainPageButtonComponent("/resource_spending", "Траты ресурсов на заказ"),
-				MainPageButtonComponent("/item", "Товары"),
-				MainPageButtonComponent("/order_item_fulfillment", "Предоставления товаров в рамках заказа"),
-				MainPageButtonComponent("/item_resource_need", "Необходимость ресурса на товар"),
-			),
-			Div(
-				Class("group-has-[input#input-toggle-expert:checked]/panel:hidden grid grid-cols-2 gap-[8px] w-full"),
-				MainPageButtonComponent("/resource_resupply/create", "Добавить поставку ресурса"),
-				MainPageButtonComponent("/order", "Посмотреть заказы"),
-			),
-		),
-	)
+func DoubleGridComponent(children Group) Node {
+	return Div(Class("grid grid-cols-2 gap-[8px] w-full"), children)
 }
 
 func MainWrapperClass(class string) Node {
@@ -302,37 +249,14 @@ func ButtonComponent(text string, as func(children ...Node) Node, children ...No
 	)
 }
 
-func UserFormComponent(signup bool) Node {
+func FormPageComponent(children Group) Node {
 	return RootComponent(
 		Main(
 			MainWrapperClass(""),
 			Form(
 				Method("post"),
 				Class("flex flex-col gap-[12px]"),
-				He1(ConditionalArg(signup, "Регистрация", "Вход")),
-				LabeledInputComponent("text", "Ivan2000Rus", "name", "Имя пользователя", "", true),
-				LabeledInputComponent("password", "Не менее 8-ми символов", "password", "Пароль", "", true),
-				If(signup, LabeledInputComponent("password", "Должен совпадать с паролем выше", "repeat_password", "Повторите пароль", "", true)),
-				A(
-					Href(ConditionalArg(signup, "/login", "/signup")),
-					Text(ConditionalArg(signup, "Есть аккаунт? Войти", "Нет аккаунта? Зарегистрироваться")),
-				),
-				ButtonComponent(ConditionalArg(signup, "Зарегистрироваться", "Войти"), Button),
-			),
-		),
-	)
-}
-
-func CreateFormComponent(name string, fields Group) Node {
-	return RootComponent(
-		Main(
-			MainWrapperClass(""),
-			Form(
-				Method("post"),
-				Class("flex flex-col gap-[12px]"),
-				He2(fmt.Sprintf("Создать %s", name)),
-				fields,
-				ButtonComponent("Создать", Button),
+				children,
 			),
 		),
 	)

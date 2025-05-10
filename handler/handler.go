@@ -1,26 +1,55 @@
 package handler
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 	"time"
 
 	billgen_types "github.com/sergeykochiev/billgen/types"
 	"github.com/sergeykochiev/curs/backend/database/entity"
+	"github.com/sergeykochiev/curs/backend/types"
 	"github.com/sergeykochiev/curs/backend/util"
 	"gorm.io/gorm"
 )
 
 func EndOrder(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 	ord := r.Context().Value("entity").(*entity.OrderEntity)
-	ord.Date_ended.Valid = true
-	ord.Date_ended.String = util.GetCurrentTime()
+	date_ended := util.GetCurrentDate()
+	var ord_res_spe_arr []entity.OrderResourceSpendingEntity
+	var ord_res_spe entity.OrderResourceSpendingEntity
+	for _, ord_ite_ful := range ord.OrderItemFulfillmentEntities {
+		for _, ite_res_nee := range ord_ite_ful.ItemEntity.ItemResourceNeeds {
+			// if ite_res_nee.Quantity_needed > ite_res_nee.ResourceEntity.Quantity {
+			// 	http.Error(w, fmt.Sprintf(`Failed to end order: not enough resource "%s" in storage`), http.StatusBadRequest)
+			// 	return
+			// }
+			ord_res_spe = entity.OrderResourceSpendingEntity{
+				Order_id:       ord.Id,
+				Resource_id:    ite_res_nee.Resource_id,
+				Quantity_spent: ite_res_nee.Quantity_needed,
+				Date:           date_ended,
+			}
+			ord_res_spe_arr = append(ord_res_spe_arr, ord_res_spe)
+		}
+	}
+	tx := db.Begin()
+	if len(ord_res_spe_arr) != 0 {
+		if res := tx.Omit("Id").Create(&ord_res_spe_arr); res.Error != nil {
+			http.Error(w, res.Error.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+	ord.Date_ended = sql.NullString{
+		Valid: true, String: date_ended,
+	}
 	ord.Ended = true
-	if res := db.Updates(&ord); res.Error != nil {
+	if res := tx.Updates(&ord); res.Error != nil {
 		http.Error(w, res.Error.Error(), http.StatusInternalServerError)
 		return
 	}
-	http.Redirect(w, r, fmt.Sprintf("/order/%d", ord.Id), http.StatusSeeOther)
+	tx.Commit()
+	http.Redirect(w, r, fmt.Sprintf("/order/%d", ord.GetId()), http.StatusSeeOther)
 }
 
 func LoginPost(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
@@ -41,13 +70,25 @@ func LoginPost(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 	w.WriteHeader(http.StatusSeeOther)
 }
 
+func GenerateItemPopularity(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
+	var ite []types.ItemPopularity
+	db.Raw(`select item.name as name, max("order".date_ended) as last_date, count(order_item_fulfillment.id) as count_fulfilled from item left join order_item_fulfillment on item.id = order_item_fulfillment.item_id join "order" on order_item_fulfillment.order_id = "order".id where "order".ended = 1 and "order".date_ended > ? and "order".date_ended < ? group by item.id order by count_fulfilled desc`, r.Form.Get("date_lo"), r.Form.Get("date_hi")).Scan(&ite)
+	fmt.Println(ite)
+}
+
+func GenerateResourceSpendings(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
+	var rs []types.ItemPopularity
+	db.Raw(`select resource.name as name, resource.one_is_called as one_is_called, max("order".date_ended) as last_date, count(order_resource_spending.id) as count_spent from resource left join order_resource_spending on resource.id = order_resource_spending.resource_id join "order" on order_resource_spending.order_id = "order".id where "order".ended = 1 and "order".date_ended > ? and "order".date_ended < ? group by resource.id order by one_is_called desc, count_spent desc`, r.Form.Get("date_lo"), r.Form.Get("date_hi")).Scan(&rs)
+	fmt.Println(rs)
+}
+
 func GenerateOrderBill(w http.ResponseWriter, r *http.Request, db *gorm.DB, tf billgen_types.GenFunc, main_q *chan func()) {
 	ord := r.Context().Value("entity").(*entity.OrderEntity)
 	if !ord.Ended {
 		http.Error(w, "Order is not ended", http.StatusBadRequest)
 		return
 	}
-	datetime_ended, err := time.Parse(time.DateTime, ord.Date_ended.String)
+	datetime_ended, err := time.Parse(time.DateOnly, ord.Date_ended.String)
 	if err != nil {
 		http.Error(w, "Failed to parse time", http.StatusBadRequest)
 		return

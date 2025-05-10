@@ -21,7 +21,7 @@ import (
 )
 
 type OrderEntity struct {
-	Id                            decimal.Decimal `gorm:"primaryKey"`
+	Id                            decimal.Decimal `gorm:"primaryKey;serializer:decimal"`
 	Name                          string
 	Client_name                   string
 	Client_phone                  string
@@ -29,7 +29,7 @@ type OrderEntity struct {
 	Date_created                  string
 	Date_ended                    sql.NullString
 	Ended                         bool
-	Creator_id                    decimal.Decimal
+	Creator_id                    decimal.Decimal               `gorm:"serializer:decimal"`
 	UserEntity                    UserEntity                    `gorm:"foreignKey:Creator_id"`
 	OrderItemFulfillmentEntities  []OrderItemFulfillmentEntity  `gorm:"foreignKey:Order_id"`
 	OrderResourceSpendingEntities []OrderResourceSpendingEntity `gorm:"foreignKey:Order_id"`
@@ -78,7 +78,7 @@ func (e *OrderEntity) GetFilters() Group {
 }
 
 func (e *OrderEntity) GetPreloadedDb(db *gorm.DB) *gorm.DB {
-	return db.Joins("UserEntity").Preload("OrderItemFulfillmentEntities.ItemEntity")
+	return db.Joins("UserEntity").Preload("OrderItemFulfillmentEntities.ItemEntity.ItemResourceNeeds.ResourceEntity")
 }
 
 func (e *OrderEntity) GetFilteredDb(filters url.Values, db *gorm.DB) *gorm.DB {

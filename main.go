@@ -20,6 +20,7 @@ import (
 	"github.com/sergeykochiev/curs/backend/middleware"
 	"github.com/sergeykochiev/curs/backend/types"
 	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
 )
 
 // --- idea - https://go.dev/wiki/LockOSThread
@@ -43,7 +44,7 @@ func EntityRouterFactory[T interface {
 }](db *gorm.DB, entity T, id_route func(r chi.Router)) func(r chi.Router) {
 	preloadedDb := entity.GetPreloadedDb(db)
 	create := func(w http.ResponseWriter, r *http.Request) {
-		res := db.Create(entity)
+		res := db.Omit("Id").Create(entity)
 		if res.Error != nil {
 			http.Error(w, res.Error.Error(), http.StatusInternalServerError)
 			return
@@ -76,10 +77,9 @@ func EntityRouterFactory[T interface {
 	}
 	getOnePage := func(w http.ResponseWriter, r *http.Request) { gui.EntityPage(entity).Render(w) }
 	getCreatePage := func(w http.ResponseWriter, r *http.Request) {
-		gui.CreateFormComponent(entity.GetReadableName(), entity.GetCreateForm(db)).Render(w)
+		gui.CreateFormPage(entity.GetReadableName(), entity.GetCreateForm(db)).Render(w)
 	}
 	return func(r chi.Router) {
-		r.Use(middleware.WithAuthUserContext(db))
 		r.Get("/", getAllPage)
 		r.Route("/create", func(r chi.Router) {
 			r.Get("/", getCreatePage)
@@ -105,6 +105,7 @@ func EntityRouterFactory[T interface {
 
 func main() {
 	var err error
+	schema.RegisterSerializer("decimal", database.DecimalIdSerializer{})
 	err = godotenv.Load(".company.env")
 	if err = billgen_init.Init(); err != nil {
 		log.Fatal("F failed to init wkhtmltopdf from billgen: ", err.Error())
@@ -137,42 +138,53 @@ func main() {
 		}
 		w.Write(data)
 	})
-	r.Route("/", func(r chi.Router) {
-		r.Use(middleware.WithAuthUserContext(db))
-		r.Get("/", func(w http.ResponseWriter, r *http.Request) { gui.MainPageComponent().Render(w) })
-	})
 	r.Route("/signup", func(r chi.Router) {
 		r.Route("/", func(r chi.Router) {
 			r.Use(middleware.WithFormFieldsValidationFactory([]string{"name", "password", "repeat_password"}))
 			r.Post("/", func(w http.ResponseWriter, r *http.Request) { handler.SignupPost(w, r, db) })
 		})
-		r.Get("/", func(w http.ResponseWriter, r *http.Request) { gui.UserFormComponent(true).Render(w) })
+		r.Get("/", func(w http.ResponseWriter, r *http.Request) { gui.UserFormPage(true).Render(w) })
 	})
 	r.Route("/login", func(r chi.Router) {
 		r.Route("/", func(r chi.Router) {
 			r.Use(middleware.WithFormFieldsValidationFactory([]string{"name", "password"}))
 			r.Post("/", func(w http.ResponseWriter, r *http.Request) { handler.LoginPost(w, r, db) })
 		})
-		r.Get("/", func(w http.ResponseWriter, r *http.Request) { gui.UserFormComponent(false).Render(w) })
+		r.Get("/", func(w http.ResponseWriter, r *http.Request) { gui.UserFormPage(false).Render(w) })
 	})
-	r.Route("/order", EntityRouterFactory(db, &OrderEntity{}, func(r chi.Router) {
-		// r.Route("/bill", func(r chi.Router) {
-		// r.Use(middleware.WithFormFieldsValidationFactory([]string{"date", "client_company"}))
-		// })
-		r.Get("/bill", func(w http.ResponseWriter, r *http.Request) {
-			handler.GenerateOrderBill(w, r, db, billgen.CreateBillPdf, &main_queue)
+	r.Route("/", func(r chi.Router) {
+		r.Use(middleware.WithAuthUserContext(db))
+		r.Get("/", func(w http.ResponseWriter, r *http.Request) { gui.MainPage().Render(w) })
+		r.Route("/order", EntityRouterFactory(db, &OrderEntity{}, func(r chi.Router) {
+			r.Get("/bill", func(w http.ResponseWriter, r *http.Request) {
+				handler.GenerateOrderBill(w, r, db, billgen.CreateBillPdf, &main_queue)
+			})
+			r.Get("/invoice", func(w http.ResponseWriter, r *http.Request) {
+				handler.GenerateOrderBill(w, r, db, billgen.CreateInvoicePdf, &main_queue)
+			})
+			r.Get("/end", func(w http.ResponseWriter, r *http.Request) { handler.EndOrder(w, r, db) })
+		}))
+		r.Route("/resource", EntityRouterFactory(db, &ResourceEntity{}, func(r chi.Router) {}))
+		r.Route("/resource_resupply", EntityRouterFactory(db, &ResourceResupplyEntity{}, func(r chi.Router) {}))
+		r.Route("/resource_spending", EntityRouterFactory(db, &OrderResourceSpendingEntity{}, func(r chi.Router) {}))
+		r.Route("/item", EntityRouterFactory(db, &ItemEntity{}, func(r chi.Router) {}))
+		r.Route("/order_item_fulfillment", EntityRouterFactory(db, &OrderItemFulfillmentEntity{}, func(r chi.Router) {}))
+		r.Route("/item_resource_need", EntityRouterFactory(db, &ItemResourceNeed{}, func(r chi.Router) {}))
+		r.Route("/item_popularity", func(r chi.Router) {
+			r.Get("/", func(w http.ResponseWriter, r *http.Request) { gui.ItemPopularityFormPage().Render(w) })
+			r.Route("/", func(r chi.Router) {
+				r.Use(middleware.WithFormFieldsValidationFactory([]string{"date_lo", "date_hi"}))
+				r.Post("/", func(w http.ResponseWriter, r *http.Request) { handler.GenerateItemPopularity(w, r, db) })
+			})
 		})
-		r.Get("/invoice", func(w http.ResponseWriter, r *http.Request) {
-			handler.GenerateOrderBill(w, r, db, billgen.CreateInvoicePdf, &main_queue)
+		r.Route("/resource_spendings", func(r chi.Router) {
+			r.Get("/", func(w http.ResponseWriter, r *http.Request) { gui.ResourceSpendingsFormPage().Render(w) })
+			r.Route("/", func(r chi.Router) {
+				r.Use(middleware.WithFormFieldsValidationFactory([]string{"date_lo", "date_hi"}))
+				r.Post("/", func(w http.ResponseWriter, r *http.Request) { handler.GenerateItemPopularity(w, r, db) })
+			})
 		})
-		r.Get("/end", func(w http.ResponseWriter, r *http.Request) { handler.EndOrder(w, r, db) })
-	}))
-	r.Route("/resource", EntityRouterFactory(db, &ResourceEntity{}, func(r chi.Router) {}))
-	r.Route("/resource_resupply", EntityRouterFactory(db, &ResourceResupplyEntity{}, func(r chi.Router) {}))
-	r.Route("/resource_spending", EntityRouterFactory(db, &OrderResourceSpendingEntity{}, func(r chi.Router) {}))
-	r.Route("/item", EntityRouterFactory(db, &ItemEntity{}, func(r chi.Router) {}))
-	r.Route("/order_item_fulfillment", EntityRouterFactory(db, &OrderItemFulfillmentEntity{}, func(r chi.Router) {}))
-	r.Route("/item_resource_need", EntityRouterFactory(db, &ItemResourceNeed{}, func(r chi.Router) {}))
+	})
 	fmt.Printf("I Listening on http://%s\n", addr)
 	go http.ListenAndServe(addr, r)
 	var quit = make(chan os.Signal, 1)

@@ -8,6 +8,19 @@ import (
 	. "maragu.dev/gomponents"
 )
 
+type ResourceSpending struct {
+	Name          string
+	Last_date     string
+	One_is_called string
+	Count_spent   float32
+}
+
+type ItemPopularity struct {
+	Name            string
+	Last_date       string
+	Count_fulfilled int
+}
+
 type Preloader interface {
 	GetPreloadedDb(db *gorm.DB) *gorm.DB
 }

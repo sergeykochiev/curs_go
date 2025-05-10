@@ -17,9 +17,9 @@ import (
 )
 
 type OrderItemFulfillmentEntity struct {
-	Id                 decimal.Decimal `gorm:"primaryKey"`
-	Order_id           decimal.Decimal
-	Item_id            decimal.Decimal
+	Id                 decimal.Decimal `gorm:"primaryKey;serializer:decimal"`
+	Order_id           decimal.Decimal `gorm:"serializer:decimal"`
+	Item_id            decimal.Decimal `gorm:"serializer:decimal"`
 	Quantity_fulfilled float32
 	OrderEntity        OrderEntity `gorm:"foreignKey:Order_id"`
 	ItemEntity         ItemEntity  `gorm:"foreignKey:Item_id"`
@@ -72,8 +72,8 @@ func (e OrderItemFulfillmentEntity) GetEntityPage(recursive bool) Group {
 	return Group{
 		LabeledFieldComponent("Количество предоставлено (единиц)", fmt.Sprintf("%f", e.Quantity_fulfilled)),
 		If(recursive, Group{
-			RelationCardComponent(fmt.Sprintf("Предоставлено в рамках заказа #%d", e.Order_id), &e.OrderEntity),
-			RelationCardComponent(fmt.Sprintf("Предоставлен товар #%d (%f шт.)", e.Item_id, e.Quantity_fulfilled), &e.ItemEntity),
+			RelationCardComponent(fmt.Sprintf("Предоставлено в рамках заказа #%d", e.OrderEntity.GetId()), &e.OrderEntity),
+			RelationCardComponent(fmt.Sprintf("Предоставлен товар #%d (%f шт.)", e.ItemEntity.GetId(), e.Quantity_fulfilled), &e.ItemEntity),
 		}),
 	}
 }

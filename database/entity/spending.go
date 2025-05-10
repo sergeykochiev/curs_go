@@ -17,9 +17,9 @@ import (
 )
 
 type OrderResourceSpendingEntity struct {
-	Id             decimal.Decimal `gorm:"primaryKey"`
-	Order_id       decimal.Decimal
-	Resource_id    decimal.Decimal
+	Id             decimal.Decimal `gorm:"primaryKey;serializer:decimal"`
+	Order_id       decimal.Decimal `gorm:"serializer:decimal"`
+	Resource_id    decimal.Decimal `gorm:"serializer:decimal"`
 	Quantity_spent float32
 	Date           string
 	OrderEntity    OrderEntity    `gorm:"foreignKey:Order_id"`
@@ -83,8 +83,8 @@ func (e OrderResourceSpendingEntity) GetEntityPage(recursive bool) Group {
 		LabeledFieldComponent("Количество потрачено (единиц)", fmt.Sprintf("%f", e.Quantity_spent)),
 		LabeledFieldComponent("Дата траты", e.Date),
 		If(recursive, Group{
-			RelationCardComponent(fmt.Sprintf("Потрачено на заказ #%d", e.Order_id), &e.OrderEntity),
-			RelationCardComponent(fmt.Sprintf("Потрачен ресурс #%d", e.Resource_id), &e.ResourceEntity),
+			RelationCardComponent(fmt.Sprintf("Потрачено на заказ #%d", e.OrderEntity.GetId()), &e.OrderEntity),
+			RelationCardComponent(fmt.Sprintf("Потрачен ресурс #%d", e.ResourceEntity.GetId()), &e.ResourceEntity),
 		}),
 	}
 }
