@@ -1,0 +1,13 @@
+package templates
+
+import (
+	billgen_templates "github.com/sergeykochiev/billgen/templates"
+	billgen_types "github.com/sergeykochiev/billgen/types"
+)
+
+templ TablePage(heading string, thda []billgen_types.THData, tddaa [][]billgen_types.TDData, ftdda []billgen_types.TDData) {
+	@billgen_templates.A4PageComponent(heading) {
+		@billgen_templates.HeadingComponent(heading)
+		@billgen_templates.TableComponent(thda, tddaa, ftdda)
+	}
+}

@@ -4,21 +4,16 @@ import (
 	"net/http"
 	"net/url"
 
+	billgen_types "github.com/sergeykochiev/billgen/types"
 	"gorm.io/gorm"
 	. "maragu.dev/gomponents"
 )
 
-type ResourceSpending struct {
-	Name          string
-	Last_date     string
-	One_is_called string
-	Count_spent   float32
-}
-
-type ItemPopularity struct {
-	Name            string
-	Last_date       string
-	Count_fulfilled int
+type TableTemplater interface {
+	GetName() string
+	ToTHead() []billgen_types.THData
+	ToTRow() []billgen_types.TDData
+	GetQuery(bool, bool) string
 }
 
 type Preloader interface {
@@ -30,13 +25,13 @@ type HtmlTemplater interface {
 	GetTableHeader() Group
 	GetDataRow() Group
 	GetReadableName() string
-	GetEntityPage(recursive bool) Group
-	GetCreateForm(db *gorm.DB) Group
+	GetEntityPage(bool) Group
+	GetCreateForm(*gorm.DB) Group
 	GetEntityPageButtons() Group
 }
 
 type Filterator interface {
-	GetFilteredDb(values url.Values, db *gorm.DB) *gorm.DB
+	GetFilteredDb(url.Values, *gorm.DB) *gorm.DB
 }
 
 type Validator interface {
@@ -44,12 +39,20 @@ type Validator interface {
 }
 
 type FormParser interface {
-	ValidateAndParseForm(r *http.Request) error
+	ValidateAndParseForm(*http.Request) error
 }
 
 type Writable interface {
+	Clearer
+	IdSetter
+}
+
+type Clearer interface {
 	Clear()
-	SetId(id int64)
+}
+
+type IdSetter interface {
+	SetId(int64)
 }
 
 type Identifier interface {

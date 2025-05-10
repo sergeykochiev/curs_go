@@ -4,11 +4,16 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"reflect"
 	"time"
 
 	billgen_types "github.com/sergeykochiev/billgen/types"
 	"github.com/sergeykochiev/curs/backend/types"
 )
+
+func MakeArrayOf[T interface{}](i T) []T {
+	return reflect.MakeSlice(reflect.SliceOf(reflect.TypeOf(i)), 0, 0).Interface().([]T)
+}
 
 func GetOneReadableName[T interface {
 	types.Identifier

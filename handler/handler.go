@@ -6,8 +6,10 @@ import (
 	"net/http"
 	"time"
 
+	billgen "github.com/sergeykochiev/billgen/gen"
 	billgen_types "github.com/sergeykochiev/billgen/types"
 	"github.com/sergeykochiev/curs/backend/database/entity"
+	"github.com/sergeykochiev/curs/backend/templates"
 	"github.com/sergeykochiev/curs/backend/types"
 	"github.com/sergeykochiev/curs/backend/util"
 	"gorm.io/gorm"
@@ -70,16 +72,39 @@ func LoginPost(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 	w.WriteHeader(http.StatusSeeOther)
 }
 
-func GenerateItemPopularity(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
-	var ite []types.ItemPopularity
-	db.Raw(`select item.name as name, max("order".date_ended) as last_date, count(order_item_fulfillment.id) as count_fulfilled from item left join order_item_fulfillment on item.id = order_item_fulfillment.item_id join "order" on order_item_fulfillment.order_id = "order".id where "order".ended = 1 and "order".date_ended > ? and "order".date_ended < ? group by item.id order by count_fulfilled desc`, r.Form.Get("date_lo"), r.Form.Get("date_hi")).Scan(&ite)
-	fmt.Println(ite)
-}
-
-func GenerateResourceSpendings(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
-	var rs []types.ItemPopularity
-	db.Raw(`select resource.name as name, resource.one_is_called as one_is_called, max("order".date_ended) as last_date, count(order_resource_spending.id) as count_spent from resource left join order_resource_spending on resource.id = order_resource_spending.resource_id join "order" on order_resource_spending.order_id = "order".id where "order".ended = 1 and "order".date_ended > ? and "order".date_ended < ? group by resource.id order by one_is_called desc, count_spent desc`, r.Form.Get("date_lo"), r.Form.Get("date_hi")).Scan(&rs)
-	fmt.Println(rs)
+func CreateGenerateDatedReportHandler[T interface {
+	types.TableTemplater
+}](db *gorm.DB, main_q *chan func(), dst T) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		r.ParseForm()
+		is_date_lo := r.Form.Has("date_lo") && r.Form.Get("date_lo") != ""
+		is_date_hi := r.Form.Has("date_hi") && r.Form.Get("date_hi") != ""
+		var dates []interface{}
+		if is_date_lo {
+			dates = append(dates, r.Form.Get("date_lo"))
+		}
+		if is_date_hi {
+			dates = append(dates, r.Form.Get("date_hi"))
+		}
+		var dsta = util.MakeArrayOf(dst)
+		if res := db.Raw(dst.GetQuery(is_date_lo, is_date_hi), dates...).Scan(&dsta); res.Error != nil {
+			http.Error(w, "Error getting data: "+res.Error.Error(), http.StatusInternalServerError)
+			return
+		}
+		core_heading := fmt.Sprintf("%s%s%s", dst.GetName(), util.ConditionalArg(is_date_lo, " с %s", ""), util.ConditionalArg(is_date_hi, " по %s", ""))
+		heading := fmt.Sprintf(core_heading, dates...)
+		w.Header().Add("Content-Disposition", fmt.Sprintf(`attachment; filename*=UTF-8''"%s.pdf"`, heading))
+		if err := util.RunOnQ(main_q, func() error {
+			var tddaa = make([][]billgen_types.TDData, len(dsta))
+			for i, dsti := range dsta {
+				tddaa[i] = dsti.ToTRow()
+			}
+			return billgen.CreatePdfFromHtml(templates.TablePage(heading, dst.ToTHead(), tddaa, []billgen_types.TDData{}), w)
+		}); err != nil {
+			http.Error(w, "Error generating .pdf: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
 }
 
 func GenerateOrderBill(w http.ResponseWriter, r *http.Request, db *gorm.DB, tf billgen_types.GenFunc, main_q *chan func()) {

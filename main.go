@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"reflect"
 	"runtime"
 
 	"github.com/go-chi/chi/v5"
@@ -15,10 +14,12 @@ import (
 	billgen_init "github.com/sergeykochiev/billgen/init"
 	"github.com/sergeykochiev/curs/backend/database"
 	. "github.com/sergeykochiev/curs/backend/database/entity"
+	"github.com/sergeykochiev/curs/backend/database/entity/report"
 	"github.com/sergeykochiev/curs/backend/gui"
 	"github.com/sergeykochiev/curs/backend/handler"
 	"github.com/sergeykochiev/curs/backend/middleware"
 	"github.com/sergeykochiev/curs/backend/types"
+	"github.com/sergeykochiev/curs/backend/util"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 )
@@ -67,13 +68,13 @@ func EntityRouterFactory[T interface {
 	// }
 	getAllPage := func(w http.ResponseWriter, r *http.Request) {
 		filteredDb := entity.GetFilteredDb(r.URL.Query(), preloadedDb)
-		arr := reflect.MakeSlice(reflect.SliceOf(reflect.TypeOf(entity)), 0, 0).Interface()
+		arr := util.MakeArrayOf(entity)
 		res := filteredDb.Find(&arr)
 		if res.Error != nil {
 			http.Error(w, res.Error.Error(), http.StatusInternalServerError)
 			return
 		}
-		gui.EntityListPage(entity, arr.([]T)).Render(w)
+		gui.EntityListPage(entity, arr).Render(w)
 	}
 	getOnePage := func(w http.ResponseWriter, r *http.Request) { gui.EntityPage(entity).Render(w) }
 	getCreatePage := func(w http.ResponseWriter, r *http.Request) {
@@ -171,18 +172,16 @@ func main() {
 		r.Route("/order_item_fulfillment", EntityRouterFactory(db, &OrderItemFulfillmentEntity{}, func(r chi.Router) {}))
 		r.Route("/item_resource_need", EntityRouterFactory(db, &ItemResourceNeed{}, func(r chi.Router) {}))
 		r.Route("/item_popularity", func(r chi.Router) {
-			r.Get("/", func(w http.ResponseWriter, r *http.Request) { gui.ItemPopularityFormPage().Render(w) })
-			r.Route("/", func(r chi.Router) {
-				r.Use(middleware.WithFormFieldsValidationFactory([]string{"date_lo", "date_hi"}))
-				r.Post("/", func(w http.ResponseWriter, r *http.Request) { handler.GenerateItemPopularity(w, r, db) })
+			r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+				gui.DatedReportFormPage("Создать отчет о популярности товаров/услуг").Render(w)
 			})
+			r.Post("/", handler.CreateGenerateDatedReportHandler(db, &main_queue, &report.ItemPopularity{}))
 		})
 		r.Route("/resource_spendings", func(r chi.Router) {
-			r.Get("/", func(w http.ResponseWriter, r *http.Request) { gui.ResourceSpendingsFormPage().Render(w) })
-			r.Route("/", func(r chi.Router) {
-				r.Use(middleware.WithFormFieldsValidationFactory([]string{"date_lo", "date_hi"}))
-				r.Post("/", func(w http.ResponseWriter, r *http.Request) { handler.GenerateItemPopularity(w, r, db) })
+			r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+				gui.DatedReportFormPage("Создать отчет о тратах ресурсов").Render(w)
 			})
+			r.Post("/", handler.CreateGenerateDatedReportHandler(db, &main_queue, &report.ResourceSpending{}))
 		})
 	})
 	fmt.Printf("I Listening on http://%s\n", addr)

@@ -38,28 +38,19 @@ func MainPage() Node {
 					MainPageButtonComponent("/resource", "Посмотреть ресурсы на складе"),
 					MainPageButtonComponent("/order", "Посмотреть заказы"),
 					MainPageButtonComponent("/item_popularity", "Получить отчет о популярности товаров/услуг"),
+					MainPageButtonComponent("/resource_spendings", "Получить отчет о тратах ресурсов"),
 				}),
 			),
 		),
 	)
 }
 
-func ItemPopularityFormPage() Node {
+func DatedReportFormPage(heading string) Node {
 	return FormPageComponent(Group{
 		Method("POST"),
-		He2("Создать отчет о популярности товаров/услуг"),
-		LabeledInputComponent("date", "", "date_lo", "С (дата)", "", true),
-		LabeledInputComponent("date", "", "date_hi", "По (дата)", "", true),
-		ButtonComponent("Создать отчет", Button),
-	})
-}
-
-func ResourceSpendingsFormPage() Node {
-	return FormPageComponent(Group{
-		Method("POST"),
-		He2("Создать отчет о тратах ресурсов"),
-		LabeledInputComponent("date", "", "date_lo", "С (дата)", "", true),
-		LabeledInputComponent("date", "", "date_hi", "По (дата)", "", true),
+		He2(heading),
+		LabeledInputComponent("date", "", "date_lo", "С (дата)", "", false),
+		LabeledInputComponent("date", "", "date_hi", "По (дата)", "", false),
 		ButtonComponent("Создать отчет", Button),
 	})
 }
