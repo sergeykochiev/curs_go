@@ -15,7 +15,7 @@ require (
 )
 
 require (
-	github.com/a-h/templ v0.3.865 // indirect
+	github.com/a-h/templ v0.3.865
 	github.com/adrg/go-wkhtmltopdf v0.3.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
