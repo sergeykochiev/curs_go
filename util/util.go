@@ -1,15 +1,28 @@
 package util
 
 import (
+	"crypto/rsa"
 	"fmt"
 	"log"
 	"os"
 	"reflect"
 	"time"
 
+	jwt "github.com/golang-jwt/jwt/v5"
 	billgen_types "github.com/sergeykochiev/billgen/types"
 	"github.com/sergeykochiev/curs/backend/types"
 )
+
+func GenerateToken(id int64, key *rsa.PrivateKey) (string, error) {
+	t := jwt.New(jwt.GetSigningMethod("RS256"))
+	t.Claims = &types.JwtUserDataClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 60)),
+		},
+		UserId: id,
+	}
+	return t.SignedString(key)
+}
 
 func MakeArrayOf[T interface{}](i T) []T {
 	return reflect.MakeSlice(reflect.SliceOf(reflect.TypeOf(i)), 0, 0).Interface().([]T)

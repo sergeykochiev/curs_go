@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
 	"fmt"
 	"log"
 	"net/http"
@@ -107,16 +109,18 @@ func EntityRouterFactory[T interface {
 func main() {
 	var err error
 	schema.RegisterSerializer("decimal", database.DecimalIdSerializer{})
-	err = godotenv.Load(".company.env")
 	if err = billgen_init.Init(); err != nil {
 		log.Fatal("F failed to init wkhtmltopdf from billgen: ", err.Error())
 	}
 	defer billgen_init.Destroy()
+	err = godotenv.Load(".company.env")
 	if err != nil {
 		log.Fatal("F failed to load company dotenv: ", err.Error())
 	}
+	var key *rsa.PrivateKey
+	key, err = rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
-		log.Fatal("F failed to load company dotenv: ", err.Error())
+		log.Fatal("F failed to generate RSA key for JWT: ", err.Error())
 	}
 	var db *gorm.DB
 	db, err = database.Connect("main.db")
@@ -149,12 +153,12 @@ func main() {
 	r.Route("/login", func(r chi.Router) {
 		r.Route("/", func(r chi.Router) {
 			r.Use(middleware.WithFormFieldsValidationFactory([]string{"name", "password"}))
-			r.Post("/", func(w http.ResponseWriter, r *http.Request) { handler.LoginPost(w, r, db) })
+			r.Post("/", handler.CreateLoginPostHandler(db, key))
 		})
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) { gui.UserFormPage(false).Render(w) })
 	})
 	r.Route("/", func(r chi.Router) {
-		r.Use(middleware.WithAuthUserContext(db))
+		r.Use(middleware.WithAuthUserContext(db, &key.PublicKey))
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) { gui.MainPage().Render(w) })
 		r.Route("/order", EntityRouterFactory(db, &OrderEntity{}, func(r chi.Router) {
 			r.Get("/bill", func(w http.ResponseWriter, r *http.Request) {

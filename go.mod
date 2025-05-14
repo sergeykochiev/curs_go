@@ -14,6 +14,8 @@ require (
 	maragu.dev/gomponents-heroicons/v3 v3.0.0
 )
 
+require github.com/golang-jwt/jwt/v5 v5.2.2 // indirect
+
 require (
 	github.com/a-h/templ v0.3.865
 	github.com/adrg/go-wkhtmltopdf v0.3.0 // indirect

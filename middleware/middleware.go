@@ -2,15 +2,16 @@ package middleware
 
 import (
 	"context"
+	"crypto/rsa"
 	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/sergeykochiev/curs/backend/database/entity"
 	"github.com/sergeykochiev/curs/backend/types"
-	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
 
@@ -21,21 +22,28 @@ func WithRequestInfoLogging(next http.Handler) http.Handler {
 	})
 }
 
-func WithAuthUserContext(db *gorm.DB) func(next http.Handler) http.Handler {
+func WithAuthUserContext(db *gorm.DB, key *rsa.PublicKey) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if len(r.Cookies()) == 0 || len(r.CookiesNamed("token")) == 0 {
 				http.Redirect(w, r, "/login", http.StatusSeeOther)
 				return
 			}
-			id, err := decimal.NewFromString(r.CookiesNamed("token")[0].Value)
-			if err != nil {
-				http.Error(w, "Failed to get userID: "+err.Error(), 404)
+			token, err := jwt.ParseWithClaims(r.CookiesNamed("token")[0].Value, &types.JwtUserDataClaims{}, func(token *jwt.Token) (interface{}, error) {
+				return key, nil
+			})
+			if err == jwt.ErrTokenExpired {
+				w.Header().Add("Location", "/login")
+				w.WriteHeader(http.StatusSeeOther)
+				return
+			} else if err != nil {
+				http.Error(w, "Failed to parse token: "+err.Error(), 404)
 				return
 			}
-			user := entity.UserEntity{Id: id}
+			user := entity.UserEntity{}
+			user.SetId(token.Claims.(*types.JwtUserDataClaims).UserId)
 			res := db.First(&user)
-			if res.Error != nil && res.Error != gorm.ErrRecordNotFound {
+			if res.Error == gorm.ErrRecordNotFound {
 				http.Error(w, "Failed to find user by name: "+res.Error.Error(), 404)
 				return
 			} else if res.Error != nil {

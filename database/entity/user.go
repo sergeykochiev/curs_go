@@ -50,6 +50,10 @@ func (e UserEntity) GetId() int64 {
 	return e.Id.IntPart()
 }
 
+func (e *UserEntity) SetId(id int64) {
+	e.Id = decimal.NewFromInt(id)
+}
+
 func (e UserEntity) TableName() string {
 	return "user"
 }

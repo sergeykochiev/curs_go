@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"crypto/rsa"
 	"database/sql"
 	"fmt"
 	"net/http"
@@ -54,27 +55,34 @@ func EndOrder(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 	http.Redirect(w, r, fmt.Sprintf("/order/%d", ord.GetId()), http.StatusSeeOther)
 }
 
-func LoginPost(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
-	var user entity.UserEntity
-	if res := db.Where("name = ?", r.Form.Get("name")).First(&user); res.Error != nil {
-		http.Error(w, res.Error.Error(), http.StatusInternalServerError)
-		return
+func CreateLoginPostHandler(db *gorm.DB, key *rsa.PrivateKey) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var user entity.UserEntity
+		if res := db.Where("name = ?", r.Form.Get("name")).First(&user); res.Error != nil {
+			http.Error(w, res.Error.Error(), http.StatusInternalServerError)
+			return
+		}
+		if !user.CheckPassword(r.Form.Get("password")) {
+			http.Error(w, "Wrong password", http.StatusBadRequest)
+			return
+		}
+		var cookie http.Cookie
+		cookie.Name = "token"
+		var err error
+		cookie.Value, err = util.GenerateToken(user.GetId(), key)
+		if err != nil {
+			http.Error(w, "Failed to create token: "+err.Error(), 404)
+			return
+		}
+		http.SetCookie(w, &cookie)
+		w.Header().Add("Location", "/")
+		w.WriteHeader(http.StatusSeeOther)
 	}
-	if !user.CheckPassword(r.Form.Get("password")) {
-		http.Error(w, "Wrong password", http.StatusBadRequest)
-		return
-	}
-	var cookie http.Cookie
-	cookie.Name = "token"
-	cookie.Value = fmt.Sprintf("%d", user.GetId())
-	http.SetCookie(w, &cookie)
-	w.Header().Add("Location", "/")
-	w.WriteHeader(http.StatusSeeOther)
 }
 
 func CreateGenerateDatedReportHandler[T interface {
 	types.TableTemplater
-}](db *gorm.DB, main_q *chan func(), dst T) func(w http.ResponseWriter, r *http.Request) {
+}](db *gorm.DB, main_q *chan func(), dst T) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 		is_date_lo := r.Form.Has("date_lo") && r.Form.Get("date_lo") != ""

@@ -4,10 +4,16 @@ import (
 	"net/http"
 	"net/url"
 
+	jwt "github.com/golang-jwt/jwt/v5"
 	billgen_types "github.com/sergeykochiev/billgen/types"
 	"gorm.io/gorm"
 	. "maragu.dev/gomponents"
 )
+
+type JwtUserDataClaims struct {
+	jwt.RegisteredClaims
+	UserId int64
+}
 
 type TableTemplater interface {
 	GetName() string
