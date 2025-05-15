@@ -10,11 +10,68 @@ import (
 	billgen "github.com/sergeykochiev/billgen/gen"
 	billgen_types "github.com/sergeykochiev/billgen/types"
 	"github.com/sergeykochiev/curs/backend/database/entity"
+	"github.com/sergeykochiev/curs/backend/gui"
 	"github.com/sergeykochiev/curs/backend/templates"
 	"github.com/sergeykochiev/curs/backend/types"
 	"github.com/sergeykochiev/curs/backend/util"
 	"gorm.io/gorm"
 )
+
+func CreateEntityCreateHandler[T types.Entity](entity T, db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		res := db.Omit("Id").Create(entity)
+		if res.Error != nil {
+			http.Error(w, res.Error.Error(), http.StatusInternalServerError)
+			return
+		}
+		http.Redirect(w, r, "/"+entity.TableName(), http.StatusSeeOther)
+	}
+}
+
+func CreateEntityUpdateHandler[T types.Entity](entity T, db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		res := db.Updates(entity)
+		if res.Error != nil {
+			http.Error(w, res.Error.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+func CreateEntityDeleteHandler[T types.Entity](entity T, db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		res := db.Delete(entity)
+		if res.Error != nil {
+			http.Error(w, res.Error.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+func CreateEntityGetPageHandler[T types.Entity](entity T) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		gui.EntityPage(entity).Render(w)
+	}
+}
+
+func CreateEntityCreatePageHandler[T types.Entity](entity T, db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		gui.CreateFormPage(entity.GetReadableName(), entity.GetCreateForm(db)).Render(w)
+	}
+}
+
+func CreateEntityGetAllPageHandler[T types.Entity](entity T, db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		filteredDb := entity.GetFilteredDb(r.URL.Query(), db)
+		arr := util.MakeArrayOf(entity)
+		res := filteredDb.Find(&arr)
+		if res.Error != nil {
+			http.Error(w, res.Error.Error(), http.StatusInternalServerError)
+			return
+		}
+		gui.EntityListPage(entity, arr).Render(w)
+	}
+}
 
 func EndOrder(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 	ord := r.Context().Value("entity").(*entity.OrderEntity)
@@ -23,10 +80,6 @@ func EndOrder(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 	var ord_res_spe entity.OrderResourceSpendingEntity
 	for _, ord_ite_ful := range ord.OrderItemFulfillmentEntities {
 		for _, ite_res_nee := range ord_ite_ful.ItemEntity.ItemResourceNeeds {
-			// if ite_res_nee.Quantity_needed > ite_res_nee.ResourceEntity.Quantity {
-			// 	http.Error(w, fmt.Sprintf(`Failed to end order: not enough resource "%s" in storage`), http.StatusBadRequest)
-			// 	return
-			// }
 			ord_res_spe = entity.OrderResourceSpendingEntity{
 				Order_id:       ord.Id,
 				Resource_id:    ite_res_nee.Resource_id,

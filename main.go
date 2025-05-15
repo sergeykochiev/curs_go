@@ -21,7 +21,6 @@ import (
 	"github.com/sergeykochiev/curs/backend/handler"
 	"github.com/sergeykochiev/curs/backend/middleware"
 	"github.com/sergeykochiev/curs/backend/types"
-	"github.com/sergeykochiev/curs/backend/util"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 )
@@ -37,64 +36,21 @@ var main_queue = make(chan func())
 
 const addr = "localhost:3003"
 
-func EntityRouterFactory[T interface {
-	types.HtmlTemplater
-	types.Identifier
-	types.FormParser
-	types.Filterator
-	types.Preloader
-	types.Writable
-}](db *gorm.DB, entity T, id_route func(r chi.Router)) func(r chi.Router) {
+func EntityRouterFactory[T types.Entity](db *gorm.DB, entity T, id_route func(r chi.Router)) func(r chi.Router) {
 	preloadedDb := entity.GetPreloadedDb(db)
-	create := func(w http.ResponseWriter, r *http.Request) {
-		res := db.Omit("Id").Create(entity)
-		if res.Error != nil {
-			http.Error(w, res.Error.Error(), http.StatusInternalServerError)
-			return
-		}
-		http.Redirect(w, r, "/"+entity.TableName(), http.StatusSeeOther)
-	}
-	// update := func(w http.ResponseWriter, r *http.Request) {
-	// 	res := db.Updates(entity)
-	// 	if res.Error != nil {
-	// 		http.Error(w, res.Error.Error(), http.StatusInternalServerError)
-	// 		return
-	// 	}
-	// }
-	// delete := func(w http.ResponseWriter, r *http.Request) {
-	// 	res := db.Delete(entity)
-	// 	if res.Error != nil {
-	// 		http.Error(w, res.Error.Error(), http.StatusInternalServerError)
-	// 		return
-	// 	}
-	// }
-	getAllPage := func(w http.ResponseWriter, r *http.Request) {
-		filteredDb := entity.GetFilteredDb(r.URL.Query(), preloadedDb)
-		arr := util.MakeArrayOf(entity)
-		res := filteredDb.Find(&arr)
-		if res.Error != nil {
-			http.Error(w, res.Error.Error(), http.StatusInternalServerError)
-			return
-		}
-		gui.EntityListPage(entity, arr).Render(w)
-	}
-	getOnePage := func(w http.ResponseWriter, r *http.Request) { gui.EntityPage(entity).Render(w) }
-	getCreatePage := func(w http.ResponseWriter, r *http.Request) {
-		gui.CreateFormPage(entity.GetReadableName(), entity.GetCreateForm(db)).Render(w)
-	}
 	return func(r chi.Router) {
-		r.Get("/", getAllPage)
+		r.Get("/", handler.CreateEntityGetAllPageHandler(entity, preloadedDb))
 		r.Route("/create", func(r chi.Router) {
-			r.Get("/", getCreatePage)
+			r.Get("/", handler.CreateEntityCreatePageHandler(entity, preloadedDb))
 			r.Route("/", func(r chi.Router) {
 				r.Use(middleware.WithFormEntityContextFactory(entity))
 				r.Use(middleware.WithEntityValidation)
-				r.Post("/", create)
+				r.Post("/", handler.CreateEntityCreateHandler(entity, preloadedDb))
 			})
 		})
 		r.Route("/{id}", func(r chi.Router) {
 			r.Use(middleware.WithDbEntityContextFactory(entity, db))
-			r.Get("/", getOnePage)
+			r.Get("/", handler.CreateEntityGetPageHandler(entity))
 			// r.Delete("/", delete)
 			r.Route("/", id_route)
 		})

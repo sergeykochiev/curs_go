@@ -26,6 +26,15 @@ type Preloader interface {
 	GetPreloadedDb(db *gorm.DB) *gorm.DB
 }
 
+type Entity interface {
+	HtmlTemplater
+	Identifier
+	FormParser
+	Filterator
+	Preloader
+	Writable
+}
+
 type HtmlTemplater interface {
 	GetFilters() Group
 	GetTableHeader() Group
