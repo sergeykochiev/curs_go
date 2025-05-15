@@ -59,7 +59,7 @@ func UserFormPage(signup bool) Node {
 	return FormPageComponent(Group{
 		Method("POST"),
 		He1(util.ConditionalArg(signup, "Регистрация", "Вход")),
-		LabeledInputComponent("text", "Ivan2000Rus", "name", "Имя пользователя", "", true),
+		LabeledInputComponent("text", "Иванов Иван", "name", "Имя пользователя", "", true),
 		LabeledInputComponent("password", "Не менее 8-ми символов", "password", "Пароль", "", true),
 		If(signup, LabeledInputComponent("password", "Должен совпадать с паролем выше", "repeat_password", "Повторите пароль", "", true)),
 		A(
