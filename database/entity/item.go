@@ -18,7 +18,7 @@ import (
 )
 
 type ItemEntity struct {
-	Id                           decimal.Decimal `gorm:"primaryKey;serializer:decimal"`
+	Id                           decimal.Decimal `gorm:"primaryKey"`
 	Name                         string
 	Cost_by_one                  float32
 	One_is_called                string

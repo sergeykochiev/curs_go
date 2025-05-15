@@ -14,7 +14,7 @@ import (
 )
 
 func GetBillNumberByDate(date time.Time) string {
-	f := func(i int) string { return ConditionalArg(i%10 == 0, "0", "") }
+	f := func(i int) string { return ConditionalArg(i/10 < 1, "0", "") }
 	day := date.Day()
 	month := date.Month()
 	year := date.Year() % 100

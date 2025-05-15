@@ -21,7 +21,7 @@ import (
 )
 
 type OrderEntity struct {
-	Id                            decimal.Decimal `gorm:"primaryKey;serializer:decimal"`
+	Id                            decimal.Decimal `gorm:"primaryKey"`
 	Name                          string
 	Client_name                   string
 	Client_phone                  string
@@ -29,7 +29,7 @@ type OrderEntity struct {
 	Date_created                  string
 	Date_ended                    sql.NullString
 	Ended                         bool
-	Creator_id                    decimal.Decimal               `gorm:"serializer:decimal"`
+	Creator_id                    decimal.Decimal
 	UserEntity                    UserEntity                    `gorm:"foreignKey:Creator_id"`
 	OrderItemFulfillmentEntities  []OrderItemFulfillmentEntity  `gorm:"foreignKey:Order_id"`
 	OrderResourceSpendingEntities []OrderResourceSpendingEntity `gorm:"foreignKey:Order_id"`

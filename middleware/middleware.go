@@ -79,9 +79,13 @@ func WithDbEntityContextFactory[T interface {
 	}
 }
 
-func WithFormEntityContextFactory(entity types.FormParser) func(next http.Handler) http.Handler {
+func WithFormEntityContextFactory[T interface {
+	types.FormParser
+	types.Clearer
+}](entity T) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			entity.Clear()
 			err := r.ParseForm()
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusBadRequest)

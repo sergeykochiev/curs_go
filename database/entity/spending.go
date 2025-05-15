@@ -17,9 +17,9 @@ import (
 )
 
 type OrderResourceSpendingEntity struct {
-	Id             decimal.Decimal `gorm:"primaryKey;serializer:decimal"`
-	Order_id       decimal.Decimal `gorm:"serializer:decimal"`
-	Resource_id    decimal.Decimal `gorm:"serializer:decimal"`
+	Id             decimal.Decimal `gorm:"primaryKey"`
+	Order_id       decimal.Decimal
+	Resource_id    decimal.Decimal
 	Quantity_spent float32
 	Date           string
 	OrderEntity    OrderEntity    `gorm:"foreignKey:Order_id"`

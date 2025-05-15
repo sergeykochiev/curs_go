@@ -17,9 +17,9 @@ import (
 )
 
 type OrderItemFulfillmentEntity struct {
-	Id                 decimal.Decimal `gorm:"primaryKey;serializer:decimal"`
-	Order_id           decimal.Decimal `gorm:"serializer:decimal"`
-	Item_id            decimal.Decimal `gorm:"serializer:decimal"`
+	Id                 decimal.Decimal `gorm:"primaryKey"`
+	Order_id           decimal.Decimal
+	Item_id            decimal.Decimal
 	Quantity_fulfilled float32
 	OrderEntity        OrderEntity `gorm:"foreignKey:Order_id"`
 	ItemEntity         ItemEntity  `gorm:"foreignKey:Item_id"`

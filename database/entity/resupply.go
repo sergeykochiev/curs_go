@@ -17,8 +17,8 @@ import (
 )
 
 type ResourceResupplyEntity struct {
-	Id             decimal.Decimal `gorm:"primaryKey;serializer:decimal"`
-	Resource_id    decimal.Decimal `gorm:"serializer:decimal"`
+	Id             decimal.Decimal `gorm:"primaryKey"`
+	Resource_id    decimal.Decimal
 	Quantity_added float32
 	Date           string
 	ResourceEntity ResourceEntity `gorm:"foreignKey:Resource_id"`
@@ -138,6 +138,7 @@ func (e *ResourceResupplyEntity) ValidateAndParseForm(r *http.Request) error {
 func (e *ResourceResupplyEntity) AfterCreate(tx *gorm.DB) (err error) {
 	e.ResourceEntity.Id = e.Resource_id
 	res := tx.First(&e.ResourceEntity)
+	fmt.Println(e.ResourceEntity)
 	if res.Error != nil {
 		return res.Error
 	}

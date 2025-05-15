@@ -22,7 +22,6 @@ import (
 	"github.com/sergeykochiev/curs/backend/middleware"
 	"github.com/sergeykochiev/curs/backend/types"
 	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
 )
 
 // --- idea - https://go.dev/wiki/LockOSThread
@@ -64,7 +63,7 @@ func EntityRouterFactory[T types.Entity](db *gorm.DB, entity T, id_route func(r 
 
 func main() {
 	var err error
-	schema.RegisterSerializer("decimal", database.DecimalIdSerializer{})
+	// schema.RegisterSerializer("decimal", database.DecimalIdSerializer{})
 	if err = billgen_init.Init(); err != nil {
 		log.Fatal("F failed to init wkhtmltopdf from billgen: ", err.Error())
 	}

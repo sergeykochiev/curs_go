@@ -8,7 +8,7 @@ import (
 )
 
 type UserEntity struct {
-	Id       decimal.Decimal `gorm:"primaryKey;serializer:decimal"`
+	Id       decimal.Decimal `gorm:"primaryKey"`
 	Name     string
 	Password string
 	Is_admin bool

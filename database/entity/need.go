@@ -18,9 +18,9 @@ import (
 )
 
 type ItemResourceNeed struct {
-	Id              decimal.Decimal `gorm:"primaryKey;serializer:decimal"`
-	Resource_id     decimal.Decimal `gorm:"serializer:decimal"`
-	Item_id         decimal.Decimal `gorm:"serializer:decimal"`
+	Id              decimal.Decimal `gorm:"primaryKey"`
+	Resource_id     decimal.Decimal
+	Item_id         decimal.Decimal
 	Quantity_needed float32
 	ResourceEntity  ResourceEntity `gorm:"foreignKey:Resource_id"`
 	ItemEntity      ItemEntity     `gorm:"foreignKey:Item_id"`

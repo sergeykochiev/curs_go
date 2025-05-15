@@ -18,7 +18,7 @@ import (
 )
 
 type ResourceEntity struct {
-	Id                            decimal.Decimal `gorm:"primaryKey;serializer:decimal"`
+	Id                            decimal.Decimal `gorm:"primaryKey"`
 	Name                          string
 	Date_last_updated             string
 	Cost_by_one                   float32
