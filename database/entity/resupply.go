@@ -84,7 +84,7 @@ func (e ResourceResupplyEntity) GetEntityPage(recursive bool) Group {
 
 func (e ResourceResupplyEntity) GetCreateForm(db *gorm.DB) Group {
 	var res []*ResourceEntity
-	db.Table("resource").Find(&res)
+	db.Find(&res)
 	return Group{
 		SelectComponent(res, "", func(r *ResourceEntity) string { return r.Name }, "Выберите ресурс", "resource_id", true, -1),
 		LabeledInputComponent("number", "", "quantity_added", "Кол-во добавлено", "", true),

@@ -115,7 +115,7 @@ func LabelComponent(children Node, label string) Node {
 
 func InputComponent(t string, ph string, name string, default_value string, required bool) Node {
 	return Input(
-		Class("px-[12px] w-full py-[6px] text-[16px] font-normal outline-gray-300 focus:outline-gray-400 transition-all hover:bg-gray-200 bg-gray-100 focus:bg-gray-50 outline outline-[1.5px]"),
+		Class("px-[12px] w-full py-[6px] text-[16px] font-normal outline-gray-300 focus:outline-gray-400 transition-all hover:bg-gray-200 bg-gray-100 focus:bg-gray-50 outline outline-[1.5px] placeholder:text-gray-400"),
 		Type(t),
 		Placeholder(ph),
 		Name(name),

@@ -13,6 +13,14 @@ import (
 	"github.com/sergeykochiev/curs/backend/types"
 )
 
+func GetBillNumberByDate(date time.Time) string {
+	f := func(i int) string { return ConditionalArg(i%10 == 0, "0", "") }
+	day := date.Day()
+	month := date.Month()
+	year := date.Year() % 100
+	return fmt.Sprintf("A0%s%d%s%d%s%d", f(year), year, f(day), day, f(int(month)), month)
+}
+
 func GenerateToken(id int64, key *rsa.PrivateKey) (string, error) {
 	t := jwt.New(jwt.GetSigningMethod("RS256"))
 	t.Claims = &types.JwtUserDataClaims{

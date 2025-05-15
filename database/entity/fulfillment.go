@@ -63,7 +63,7 @@ func (e OrderItemFulfillmentEntity) GetTableHeader() Group {
 	return Group{
 		TableDataComponent("Id", Th, ""),
 		TableDataComponent("Название заказа", Th, ""),
-		TableDataComponent("Наименование товара", Th, ""),
+		TableDataComponent("Наименование товара/услуги", Th, ""),
 		TableDataComponent("Количество предоставлено (единиц)", Th, ""),
 	}
 }
@@ -73,7 +73,7 @@ func (e OrderItemFulfillmentEntity) GetEntityPage(recursive bool) Group {
 		LabeledFieldComponent("Количество предоставлено (единиц)", fmt.Sprintf("%f", e.Quantity_fulfilled)),
 		If(recursive, Group{
 			RelationCardComponent(fmt.Sprintf("Предоставлено в рамках заказа #%d", e.OrderEntity.GetId()), &e.OrderEntity),
-			RelationCardComponent(fmt.Sprintf("Предоставлен товар #%d (%f шт.)", e.ItemEntity.GetId(), e.Quantity_fulfilled), &e.ItemEntity),
+			RelationCardComponent(fmt.Sprintf("Предоставлен товар/услуга #%d (%f шт.)", e.ItemEntity.GetId(), e.Quantity_fulfilled), &e.ItemEntity),
 		}),
 	}
 }
@@ -84,14 +84,14 @@ func (e OrderItemFulfillmentEntity) GetCreateForm(db *gorm.DB) Group {
 	db.Find(&ord)
 	db.Find(&res)
 	return Group{
-		SelectComponent(ord, "", func(r *OrderEntity) string { return r.Name }, "Выберите заказ, в рамках которого предоставлен товар", "order_id", true, -1),
-		SelectComponent(res, "", func(r *ItemEntity) string { return r.Name }, "Выберите товар", "item_id", true, -1),
+		SelectComponent(ord, "", func(r *OrderEntity) string { return r.Name }, "Выберите заказ, в рамках которого предоставлен товар/услуга", "order_id", true, -1),
+		SelectComponent(res, "", func(r *ItemEntity) string { return r.Name }, "Выберите товар/услугу", "item_id", true, -1),
 		LabeledInputComponent("number", "", "quantity_fulfilled", "Кол-во предоставлено", "", true),
 	}
 }
 
 func (e OrderItemFulfillmentEntity) GetReadableName() string {
-	return "Предоставление товара в рамках заказа"
+	return "Предоставление товара/услуги в рамках заказа"
 }
 
 func (e OrderItemFulfillmentEntity) Validate() bool {

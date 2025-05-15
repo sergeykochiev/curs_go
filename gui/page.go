@@ -39,6 +39,7 @@ func MainPage() Node {
 					MainPageButtonComponent("/order", "Посмотреть заказы"),
 					MainPageButtonComponent("/item_popularity", "Получить отчет о популярности товаров/услуг"),
 					MainPageButtonComponent("/resource_spendings", "Получить отчет о тратах ресурсов"),
+					MainPageButtonComponent("/order_item_fulfillment/create", "Добавить товар/услугу к заказу"),
 				}),
 			),
 		),

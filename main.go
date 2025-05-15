@@ -41,7 +41,7 @@ func EntityRouterFactory[T types.Entity](db *gorm.DB, entity T, id_route func(r 
 	return func(r chi.Router) {
 		r.Get("/", handler.CreateEntityGetAllPageHandler(entity, preloadedDb))
 		r.Route("/create", func(r chi.Router) {
-			r.Get("/", handler.CreateEntityCreatePageHandler(entity, preloadedDb))
+			r.Get("/", handler.CreateEntityCreatePageHandler(entity, db))
 			r.Route("/", func(r chi.Router) {
 				r.Use(middleware.WithFormEntityContextFactory(entity))
 				r.Use(middleware.WithEntityValidation)

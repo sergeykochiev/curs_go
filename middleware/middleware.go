@@ -32,12 +32,9 @@ func WithAuthUserContext(db *gorm.DB, key *rsa.PublicKey) func(next http.Handler
 			token, err := jwt.ParseWithClaims(r.CookiesNamed("token")[0].Value, &types.JwtUserDataClaims{}, func(token *jwt.Token) (interface{}, error) {
 				return key, nil
 			})
-			if err == jwt.ErrTokenExpired {
+			if err != nil {
 				w.Header().Add("Location", "/login")
 				w.WriteHeader(http.StatusSeeOther)
-				return
-			} else if err != nil {
-				http.Error(w, "Failed to parse token: "+err.Error(), 404)
 				return
 			}
 			user := entity.UserEntity{}

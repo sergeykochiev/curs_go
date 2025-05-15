@@ -4,7 +4,9 @@ import (
 	"crypto/rsa"
 	"database/sql"
 	"fmt"
+	"maps"
 	"net/http"
+	"slices"
 	"time"
 
 	billgen "github.com/sergeykochiev/billgen/gen"
@@ -76,20 +78,27 @@ func CreateEntityGetAllPageHandler[T types.Entity](entity T, db *gorm.DB) http.H
 func EndOrder(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 	ord := r.Context().Value("entity").(*entity.OrderEntity)
 	date_ended := util.GetCurrentDate()
-	var ord_res_spe_arr []entity.OrderResourceSpendingEntity
-	var ord_res_spe entity.OrderResourceSpendingEntity
+	var ord_res_spe_map = make(map[int64]entity.OrderResourceSpendingEntity)
 	for _, ord_ite_ful := range ord.OrderItemFulfillmentEntities {
 		for _, ite_res_nee := range ord_ite_ful.ItemEntity.ItemResourceNeeds {
-			ord_res_spe = entity.OrderResourceSpendingEntity{
-				Order_id:       ord.Id,
-				Resource_id:    ite_res_nee.Resource_id,
-				Quantity_spent: ite_res_nee.Quantity_needed,
-				Date:           date_ended,
+			ord_res_spe, ok := ord_res_spe_map[ite_res_nee.ResourceEntity.GetId()]
+			if !ok {
+				ord_res_spe_map[ite_res_nee.ResourceEntity.GetId()] = entity.OrderResourceSpendingEntity{
+					Order_id:       ord.Id,
+					Resource_id:    ite_res_nee.Resource_id,
+					Quantity_spent: ite_res_nee.Quantity_needed,
+					Date:           date_ended,
+				}
+			} else {
+				fmt.Println(ite_res_nee.ResourceEntity.GetId())
+				ord_res_spe.Quantity_spent += ite_res_nee.Quantity_needed
+				ord_res_spe_map[ite_res_nee.ResourceEntity.GetId()] = ord_res_spe
 			}
-			ord_res_spe_arr = append(ord_res_spe_arr, ord_res_spe)
 		}
 	}
+	fmt.Println(ord_res_spe_map)
 	tx := db.Begin()
+	ord_res_spe_arr := slices.Collect(maps.Values(ord_res_spe_map))
 	if len(ord_res_spe_arr) != 0 {
 		if res := tx.Omit("Id").Create(&ord_res_spe_arr); res.Error != nil {
 			http.Error(w, res.Error.Error(), http.StatusInternalServerError)
@@ -179,7 +188,7 @@ func GenerateOrderBill(w http.ResponseWriter, r *http.Request, db *gorm.DB, tf b
 		http.Error(w, "Failed to parse time", http.StatusBadRequest)
 		return
 	}
-	report_number := "bill_number"
+	report_number := util.GetBillNumberByDate(datetime_ended)
 	date_ended := fmt.Sprintf("%d %s %d", datetime_ended.Day(), util.GetRussianMonthGenitive(int(datetime_ended.Month())), datetime_ended.Year())
 	w.Header().Add("Content-Disposition", fmt.Sprintf(`attachment; filename*=UTF-8''"Счет № %s %s.pdf"`, report_number, ord.Company_name.String))
 	if err = util.RunOnQ(main_q, func() error {

@@ -5,6 +5,7 @@ go 1.23.6
 require (
 	github.com/LeKovr/num2word v0.0.0-20230222121907-fcf7ab10b131
 	github.com/go-chi/chi/v5 v5.2.1
+	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/joho/godotenv v1.5.1
 	github.com/sergeykochiev/billgen v0.0.0-20250506185713-322557fcef49
 	github.com/shopspring/decimal v1.4.0
@@ -13,8 +14,6 @@ require (
 	maragu.dev/gomponents v1.0.0
 	maragu.dev/gomponents-heroicons/v3 v3.0.0
 )
-
-require github.com/golang-jwt/jwt/v5 v5.2.2 // indirect
 
 require (
 	github.com/a-h/templ v0.3.865
