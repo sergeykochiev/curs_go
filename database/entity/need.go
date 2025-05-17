@@ -21,7 +21,7 @@ type ItemResourceNeed struct {
 	Id              decimal.Decimal `gorm:"primaryKey"`
 	Resource_id     decimal.Decimal
 	Item_id         decimal.Decimal
-	Quantity_needed float32
+	Quantity_needed float64
 	ResourceEntity  ResourceEntity `gorm:"foreignKey:Resource_id"`
 	ItemEntity      ItemEntity     `gorm:"foreignKey:Item_id"`
 }
@@ -133,7 +133,7 @@ func (e *ItemResourceNeed) ValidateAndParseForm(r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	e.Quantity_needed = float32(quantity_needed)
+	e.Quantity_needed = float64(quantity_needed)
 	return nil
 }
 

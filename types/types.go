@@ -15,10 +15,11 @@ type JwtUserDataClaims struct {
 	UserId int64
 }
 
-type TableTemplater interface {
+type TableTemplater[T any] interface {
 	GetName() string
 	ToTHead() []billgen_types.THData
 	ToTRow() []billgen_types.TDData
+	ToTFoot([]T) []billgen_types.TDData
 	GetQuery(bool, bool) string
 }
 

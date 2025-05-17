@@ -63,7 +63,6 @@ func EntityRouterFactory[T types.Entity](db *gorm.DB, entity T, id_route func(r 
 
 func main() {
 	var err error
-	// schema.RegisterSerializer("decimal", database.DecimalIdSerializer{})
 	if err = billgen_init.Init(); err != nil {
 		log.Fatal("F failed to init wkhtmltopdf from billgen: ", err.Error())
 	}
@@ -134,13 +133,13 @@ func main() {
 			r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 				gui.DatedReportFormPage("Создать отчет о популярности товаров/услуг").Render(w)
 			})
-			r.Post("/", handler.CreateGenerateDatedReportHandler(db, &main_queue, &report.ItemPopularity{}))
+			r.Post("/", handler.CreateGenerateDatedReportHandler(db, &main_queue, report.ItemPopularity{}))
 		})
 		r.Route("/resource_spendings", func(r chi.Router) {
 			r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 				gui.DatedReportFormPage("Создать отчет о тратах ресурсов").Render(w)
 			})
-			r.Post("/", handler.CreateGenerateDatedReportHandler(db, &main_queue, &report.ResourceSpending{}))
+			r.Post("/", handler.CreateGenerateDatedReportHandler(db, &main_queue, report.ResourceSpending{}))
 		})
 	})
 	fmt.Printf("I Listening on http://%s\n", addr)

@@ -21,9 +21,9 @@ type ResourceEntity struct {
 	Id                            decimal.Decimal `gorm:"primaryKey"`
 	Name                          string
 	Date_last_updated             string
-	Cost_by_one                   float32
+	Cost_by_one                   float64
 	One_is_called                 string
-	Quantity                      float32
+	Quantity                      float64
 	ResourceResupplyEntities      []ResourceResupplyEntity      `gorm:"foreignKey:Resource_id"`
 	OrderResourceSpendingEntities []OrderResourceSpendingEntity `gorm:"foreignKey:Resource_id"`
 	ItemResourceNeeds             []ItemResourceNeed            `gorm:"foreignKey:Resource_id"`
@@ -152,11 +152,11 @@ func (e *ResourceEntity) ValidateAndParseForm(r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	e.Cost_by_one = float32(cost_by_one)
+	e.Cost_by_one = float64(cost_by_one)
 	quantity, err := strconv.ParseFloat(form.Get("quantity"), 32)
 	if err != nil {
 		return err
 	}
-	e.Quantity = float32(quantity)
+	e.Quantity = float64(quantity)
 	return nil
 }

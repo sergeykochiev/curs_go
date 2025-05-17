@@ -3,7 +3,6 @@ package middleware
 import (
 	"context"
 	"crypto/rsa"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -68,7 +67,6 @@ func WithDbEntityContextFactory[T interface {
 			entity.Clear()
 			entity.SetId(int64(id))
 			res := entity.GetPreloadedDb(db).First(&entity)
-			fmt.Println(entity)
 			if res.Error != nil {
 				http.Error(w, "ID not found: "+res.Error.Error(), 404)
 				return

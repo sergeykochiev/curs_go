@@ -19,7 +19,7 @@ import (
 type ResourceResupplyEntity struct {
 	Id             decimal.Decimal `gorm:"primaryKey"`
 	Resource_id    decimal.Decimal
-	Quantity_added float32
+	Quantity_added float64
 	Date           string
 	ResourceEntity ResourceEntity `gorm:"foreignKey:Resource_id"`
 }
@@ -130,7 +130,7 @@ func (e *ResourceResupplyEntity) ValidateAndParseForm(r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	e.Quantity_added = float32(quantity_added)
+	e.Quantity_added = float64(quantity_added)
 	e.Date = form.Get("date")
 	return nil
 }
@@ -138,7 +138,6 @@ func (e *ResourceResupplyEntity) ValidateAndParseForm(r *http.Request) error {
 func (e *ResourceResupplyEntity) AfterCreate(tx *gorm.DB) (err error) {
 	e.ResourceEntity.Id = e.Resource_id
 	res := tx.First(&e.ResourceEntity)
-	fmt.Println(e.ResourceEntity)
 	if res.Error != nil {
 		return res.Error
 	}

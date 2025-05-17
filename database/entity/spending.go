@@ -20,7 +20,7 @@ type OrderResourceSpendingEntity struct {
 	Id             decimal.Decimal `gorm:"primaryKey"`
 	Order_id       decimal.Decimal
 	Resource_id    decimal.Decimal
-	Quantity_spent float32
+	Quantity_spent float64
 	Date           string
 	OrderEntity    OrderEntity    `gorm:"foreignKey:Order_id"`
 	ResourceEntity ResourceEntity `gorm:"foreignKey:Resource_id"`
@@ -144,7 +144,7 @@ func (e *OrderResourceSpendingEntity) ValidateAndParseForm(r *http.Request) erro
 	if err != nil {
 		return err
 	}
-	e.Quantity_spent = float32(quantity_added)
+	e.Quantity_spent = float64(quantity_added)
 	e.Date = form.Get("date")
 	return nil
 }

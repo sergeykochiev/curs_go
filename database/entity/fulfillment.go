@@ -20,7 +20,7 @@ type OrderItemFulfillmentEntity struct {
 	Id                 decimal.Decimal `gorm:"primaryKey"`
 	Order_id           decimal.Decimal
 	Item_id            decimal.Decimal
-	Quantity_fulfilled float32
+	Quantity_fulfilled float64
 	OrderEntity        OrderEntity `gorm:"foreignKey:Order_id"`
 	ItemEntity         ItemEntity  `gorm:"foreignKey:Item_id"`
 }
@@ -132,7 +132,7 @@ func (e *OrderItemFulfillmentEntity) ValidateAndParseForm(r *http.Request) error
 	if err != nil {
 		return err
 	}
-	e.Quantity_fulfilled = float32(quantity_fulfilled)
+	e.Quantity_fulfilled = float64(quantity_fulfilled)
 	return nil
 }
 

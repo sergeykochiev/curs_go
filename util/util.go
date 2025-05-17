@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"reflect"
 	"time"
 
 	jwt "github.com/golang-jwt/jwt/v5"
@@ -30,10 +29,6 @@ func GenerateToken(id int64, key *rsa.PrivateKey) (string, error) {
 		UserId: id,
 	}
 	return t.SignedString(key)
-}
-
-func MakeArrayOf[T interface{}](i T) []T {
-	return reflect.MakeSlice(reflect.SliceOf(reflect.TypeOf(i)), 0, 0).Interface().([]T)
 }
 
 func GetOneReadableName[T interface {

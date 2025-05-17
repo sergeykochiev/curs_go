@@ -48,13 +48,13 @@ func (e OrderEntity) GetEntityPageButtons() Group {
 func (e OrderEntity) GetBIL(db *gorm.DB) billgen_types.BillItemList {
 	len := len(e.OrderItemFulfillmentEntities)
 	var bia = make([]billgen_types.BillItem, len)
-	var summ float32
+	var summ float64
 	for i, item := range e.OrderItemFulfillmentEntities {
 		bia[i].Name = item.ItemEntity.Name
 		bia[i].Cost = item.ItemEntity.Cost_by_one
 		bia[i].Count = int(item.Quantity_fulfilled)
 		bia[i].One_is_called = item.ItemEntity.One_is_called
-		bia[i].Summ = float32(bia[i].Count) * bia[i].Cost
+		bia[i].Summ = float64(bia[i].Count) * bia[i].Cost
 		summ += bia[i].Summ
 	}
 	return billgen_types.BillItemList{

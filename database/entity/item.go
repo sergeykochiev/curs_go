@@ -20,7 +20,7 @@ import (
 type ItemEntity struct {
 	Id                           decimal.Decimal `gorm:"primaryKey"`
 	Name                         string
-	Cost_by_one                  float32
+	Cost_by_one                  float64
 	One_is_called                string
 	OrderItemFulfillmentEntities []OrderItemFulfillmentEntity `gorm:"foreignKey:Item_id"`
 	ItemResourceNeeds            []ItemResourceNeed           `gorm:"foreignKey:Item_id"`
@@ -132,6 +132,6 @@ func (e *ItemEntity) ValidateAndParseForm(r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	e.Cost_by_one = float32(cost_by_one)
+	e.Cost_by_one = float64(cost_by_one)
 	return nil
 }

@@ -65,7 +65,7 @@ func CreateEntityCreatePageHandler[T types.Entity](entity T, db *gorm.DB) http.H
 func CreateEntityGetAllPageHandler[T types.Entity](entity T, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		filteredDb := entity.GetFilteredDb(r.URL.Query(), db)
-		arr := util.MakeArrayOf(entity)
+		arr := make([]T, 0, 0)
 		res := filteredDb.Find(&arr)
 		if res.Error != nil {
 			http.Error(w, res.Error.Error(), http.StatusInternalServerError)
@@ -90,13 +90,11 @@ func EndOrder(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
 					Date:           date_ended,
 				}
 			} else {
-				fmt.Println(ite_res_nee.ResourceEntity.GetId())
 				ord_res_spe.Quantity_spent += ite_res_nee.Quantity_needed
 				ord_res_spe_map[ite_res_nee.ResourceEntity.GetId()] = ord_res_spe
 			}
 		}
 	}
-	fmt.Println(ord_res_spe_map)
 	tx := db.Begin()
 	ord_res_spe_arr := slices.Collect(maps.Values(ord_res_spe_map))
 	if len(ord_res_spe_arr) != 0 {
@@ -142,9 +140,7 @@ func CreateLoginPostHandler(db *gorm.DB, key *rsa.PrivateKey) http.HandlerFunc {
 	}
 }
 
-func CreateGenerateDatedReportHandler[T interface {
-	types.TableTemplater
-}](db *gorm.DB, main_q *chan func(), dst T) http.HandlerFunc {
+func CreateGenerateDatedReportHandler[T types.TableTemplater[T]](db *gorm.DB, main_q *chan func(), dst T) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 		is_date_lo := r.Form.Has("date_lo") && r.Form.Get("date_lo") != ""
@@ -156,7 +152,7 @@ func CreateGenerateDatedReportHandler[T interface {
 		if is_date_hi {
 			dates = append(dates, r.Form.Get("date_hi"))
 		}
-		var dsta = util.MakeArrayOf(dst)
+		var dsta = make([]T, 0, 0)
 		if res := db.Raw(dst.GetQuery(is_date_lo, is_date_hi), dates...).Scan(&dsta); res.Error != nil {
 			http.Error(w, "Error getting data: "+res.Error.Error(), http.StatusInternalServerError)
 			return
@@ -169,7 +165,7 @@ func CreateGenerateDatedReportHandler[T interface {
 			for i, dsti := range dsta {
 				tddaa[i] = dsti.ToTRow()
 			}
-			return billgen.CreatePdfFromHtml(templates.TablePage(heading, dst.ToTHead(), tddaa, []billgen_types.TDData{}), w)
+			return billgen.CreatePdfFromHtml(templates.TablePage(heading, dst.ToTHead(), tddaa, dst.ToTFoot(dsta)), w)
 		}); err != nil {
 			http.Error(w, "Error generating .pdf: "+err.Error(), http.StatusInternalServerError)
 			return
