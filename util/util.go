@@ -1,13 +1,72 @@
 package util
 
 import (
-	"database/sql"
-	"errors"
+	"crypto/rsa"
 	"fmt"
+	"log"
+	"os"
 	"time"
 
-	. "github.com/sergeykochiev/curs/backend/types"
+	jwt "github.com/golang-jwt/jwt/v5"
+	billgen_types "github.com/sergeykochiev/billgen/types"
+	"github.com/sergeykochiev/curs/backend/types"
 )
+
+func GetBillNumberByDate(date time.Time) string {
+	f := func(i int) string { return ConditionalArg(i/10 < 1, "0", "") }
+	day := date.Day()
+	month := date.Month()
+	year := date.Year() % 100
+	return fmt.Sprintf("A0%s%d%s%d%s%d", f(year), year, f(day), day, f(int(month)), month)
+}
+
+func GenerateToken(id int64, key *rsa.PrivateKey) (string, error) {
+	t := jwt.New(jwt.GetSigningMethod("RS256"))
+	t.Claims = &types.JwtUserDataClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 60)),
+		},
+		UserId: id,
+	}
+	return t.SignedString(key)
+}
+
+func GetOneReadableName[T interface {
+	types.Identifier
+	types.HtmlTemplater
+}](ent T) string {
+	return fmt.Sprintf("%s #%d", ent.GetReadableName(), ent.GetId())
+}
+
+func GetOneHref[T interface {
+	types.Identifier
+}](ent T) string {
+	return fmt.Sprintf("/%s/%d", ent.TableName(), ent.GetId())
+}
+
+func RunOnQ(q *chan func(), f func() error) error {
+	err := make(chan error)
+	*q <- func() {
+		err <- f()
+	}
+	return <-err
+}
+
+func GetCompanyInfoFromEnv() billgen_types.CompanyInfo {
+	return billgen_types.CompanyInfo{
+		Inn:     os.Getenv("COMP_INN"),
+		Name:    os.Getenv("COMP_NAME"),
+		Address: os.Getenv("COMP_ADDRESS"),
+		Number:  os.Getenv("COMP_NUMBER"),
+		Details: billgen_types.CompanyDetails{
+			Bank: os.Getenv("COMP_DET_BANK"),
+			Rs:   os.Getenv("COMP_DET_RS"),
+			Ks:   os.Getenv("COMP_DET_KS"),
+			Bik:  os.Getenv("COMP_DET_BIK"),
+		},
+		PersonResp: os.Getenv("COMP_PERSON_RESP"),
+	}
+}
 
 func ConditionalArg[T any](condition bool, arg T, notarg T) T {
 	if condition {
@@ -20,38 +79,37 @@ func GetCurrentTime() string {
 	return time.Now().Format(time.DateTime)
 }
 
-func GetRows[T ActiveRecorder](db QueryExecutor, ent T, where string) ([]T, error) {
-	var rows *sql.Rows
-	var err error
-	rows, err = db.Query(ent.GetSelectWhereQuery(where))
-	if err != nil {
-		return nil, err
-	}
-	var arr []T
-	for rows.Next() {
-		if err := ent.ScanRow(rows); err != nil {
-			return arr, err
-		}
-		arr = append(arr, ent)
-	}
-	return arr, nil
+func GetCurrentDate() string {
+	return time.Now().Format(time.DateOnly)
 }
 
-func GetSingleRow[T interface {
-	ActiveRecorder
-	Identifier
-}](db QueryExecutor, ent T, id int) error {
-	println(ent.GetSelectWhereQuery(fmt.Sprintf("where \"%s\".id = $1", ent.GetName())))
-	rows, err := db.Query(ent.GetSelectWhereQuery(fmt.Sprintf("where \"%s\".id = $1", ent.GetName())), id)
-	if err != nil {
-		return err
+func GetRussianMonthGenitive(month int) string {
+	switch month {
+	case 1:
+		return "января"
+	case 2:
+		return "февраля"
+	case 3:
+		return "марта"
+	case 4:
+		return "апреля"
+	case 5:
+		return "мая"
+	case 6:
+		return "июня"
+	case 7:
+		return "июля"
+	case 8:
+		return "августа"
+	case 9:
+		return "сентября"
+	case 10:
+		return "октября"
+	case 11:
+		return "ноября"
+	case 12:
+		return "декабря"
 	}
-	if !rows.Next() {
-		return sql.ErrNoRows
-	}
-	return ent.ScanRow(rows)
-}
-
-func PreappendError(prefix string, err error) error {
-	return errors.New(fmt.Sprintf("%s: %s", prefix, err.Error()))
+	log.Fatal("They discovered a new month")
+	return ""
 }

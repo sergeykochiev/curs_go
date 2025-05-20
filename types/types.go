@@ -1,61 +1,77 @@
 package types
 
 import (
-	"database/sql"
+	"net/http"
+	"net/url"
 
+	jwt "github.com/golang-jwt/jwt/v5"
+	billgen_types "github.com/sergeykochiev/billgen/types"
+	"gorm.io/gorm"
 	. "maragu.dev/gomponents"
 )
 
-type StateType struct {
-	DB     *sql.DB
-	MainDB *sql.DB
+type JwtUserDataClaims struct {
+	jwt.RegisteredClaims
+	UserId int64
 }
 
-type DatabaseRecord struct {
-	Id             int
-	Name           string
-	Filepath       string
-	Is_initialized int
+type TableTemplater[T any] interface {
+	GetName() string
+	ToTHead() []billgen_types.THData
+	ToTRow() []billgen_types.TDData
+	ToTFoot([]T) []billgen_types.TDData
+	GetQuery(bool, bool) string
 }
 
-type Scanner interface {
-	Scan(dest ...any) error
+type Preloader interface {
+	GetPreloadedDb(db *gorm.DB) *gorm.DB
 }
 
-type HtmlEntity interface {
+type Entity interface {
 	HtmlTemplater
-	ActiveRecorder
 	Identifier
-}
-
-type QueryExecutor interface {
-	Exec(query string, args ...any) (sql.Result, error)
-	QueryRow(query string, args ...any) *sql.Row
-	Query(query string, args ...any) (*sql.Rows, error)
-}
-
-type ActiveRecorder interface {
-	ScanRow(r Scanner) error
-	GetSelectWhereQuery(where string) string
-	Insert(db QueryExecutor) (sql.Result, error)
+	FormParser
+	Filterator
+	Preloader
+	Writable
 }
 
 type HtmlTemplater interface {
+	GetFilters() Group
 	GetTableHeader() Group
 	GetDataRow() Group
 	GetReadableName() string
-	GetEntityPage(recursive bool) Group
+	GetEntityPage(bool) Group
+	GetCreateForm(*gorm.DB) Group
+	GetEntityPageButtons() Group
 }
 
-type HtmlCreatable interface {
-	GetCreateForm(arg ...HtmlEntity) Group
+type Filterator interface {
+	GetFilteredDb(url.Values, *gorm.DB) *gorm.DB
 }
 
 type Validator interface {
 	Validate() bool
 }
 
+type FormParser interface {
+	ValidateAndParseForm(*http.Request) error
+}
+
+type Writable interface {
+	Clearer
+	IdSetter
+}
+
+type Clearer interface {
+	Clear()
+}
+
+type IdSetter interface {
+	SetId(int64)
+}
+
 type Identifier interface {
-	GetName() string
-	GetId() int
+	TableName() string
+	GetId() int64
 }
